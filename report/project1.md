@@ -12,19 +12,16 @@
 
 ### 2. Internal Record Format
 - Show your record format design.
-null bytes and the data of the attributes.
+row store
 
-- Describe how you store a null field.
-
+Describe how you store a null field.
 store at the beign of a record
 
-- Describe how you store a VarChar field.
+Describe how you store a VarChar field.
+store the length of the varchar and then the varchar it self.
 
-store the length of the varchar and then the varchar it self. 
-
-- Describe how your record design satisfies O(1) field access.
-
-Does not support it now.  :) 
+Describe how your record design satisfies O(1) field access.
+Does not support the column store now. :)
 
 ### 3. Page Format
 - Show your page format design.
