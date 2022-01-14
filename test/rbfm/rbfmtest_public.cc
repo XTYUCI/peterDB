@@ -28,6 +28,7 @@ namespace PeterDBTesting {
 
         std::ostringstream stream;
         rbfm.printRecord(recordDescriptor, inBuffer, stream);
+
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: 25, Height: 177.8, Salary: 6200", stream.str()));
 
@@ -41,6 +42,7 @@ namespace PeterDBTesting {
         stream.str(std::string());
         stream.clear();
         rbfm.printRecord(recordDescriptor, outBuffer, stream);
+
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: 25, Height: 177.8, Salary: 6200", stream.str()));
 
@@ -79,6 +81,7 @@ namespace PeterDBTesting {
 
         std::ostringstream stream;
         rbfm.printRecord(recordDescriptor, inBuffer, stream);
+
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: NULL, Height: 177.8, Salary: NULL", stream.str()));
 
@@ -97,6 +100,9 @@ namespace PeterDBTesting {
 
         // Compare whether the two memory blocks are the same
         ASSERT_EQ(memcmp(inBuffer, outBuffer, recordSize), 0) << "the read data should match the inserted data";
+
+
+
 
     }
 
@@ -148,8 +154,9 @@ namespace PeterDBTesting {
         ASSERT_EQ(rids.size(), numRecords) << "Reading records should succeed.";
         ASSERT_EQ(sizes.size(), (unsigned) numRecords) << "Reading records should succeed.";
 
-        outBuffer = malloc(1000);
 
+        outBuffer = malloc(1000);
+        //read  ............
         for (int i = 0; i < numRecords; i++) {
             memset(inBuffer, 0, 1000);
             memset(outBuffer, 0, 1000);
@@ -160,10 +167,12 @@ namespace PeterDBTesting {
                 std::ostringstream stream;
                 rbfm.printRecord(recordDescriptor, outBuffer, stream);
                 GTEST_LOG_(INFO) << "Returned Data: " << stream.str();
+
             }
 
             int size = 0;
             prepareLargeRecord(recordDescriptor.size(), nullsIndicator, i, inBuffer, &size);
+
             ASSERT_EQ(memcmp(outBuffer, inBuffer, sizes[i]), 0) << "the read data should match the inserted data";
         }
 

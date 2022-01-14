@@ -4,6 +4,22 @@
 #define PAGE_SIZE 4096
 
 #include <string>
+#include <string.h>
+#include <cstdlib>
+#include <vector>
+#include <string>
+#include "pfm.h"
+#include <vector>
+#include <cstdio>
+#include <string.h>
+#include <cstdlib>
+#include <iostream>
+#include "pfm.h"
+#include <cmath>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+using namespace std;
 
 namespace PeterDB {
 
@@ -21,6 +37,7 @@ namespace PeterDB {
         RC openFile(const std::string &fileName, FileHandle &fileHandle);   // Open a file
         RC closeFile(FileHandle &fileHandle);                               // Close a file
 
+
     protected:
         PagedFileManager();                                                 // Prevent construction
         ~PagedFileManager();                                                // Prevent unwanted destruction
@@ -35,6 +52,7 @@ namespace PeterDB {
         unsigned readPageCounter;
         unsigned writePageCounter;
         unsigned appendPageCounter;
+        unsigned pageNums;
 
         FileHandle();                                                       // Default constructor
         ~FileHandle();                                                      // Destructor
@@ -43,8 +61,18 @@ namespace PeterDB {
         RC writePage(PageNum pageNum, const void *data);                    // Write a specific page
         RC appendPage(const void *data);                                    // Append a specific page
         unsigned getNumberOfPages();                                        // Get the number of pages in the file
-        RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount,
-                                unsigned &appendPageCount);                 // Put current counter values into variables
+        RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount,unsigned &appendPageCount);                 // Put current counter values into variables
+
+        void initializePage( PageNum pageNum);
+
+        RC closeFile();
+        RC setFileP(FILE* _fileP);
+        void updateHiddenPage();
+        void readHiddenPage();
+    private:
+        FILE *fileP=NULL;
+
+
     };
 
 } // namespace PeterDB

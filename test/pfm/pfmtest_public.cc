@@ -58,6 +58,7 @@ namespace PeterDBTesting {
         // Create a file
         ASSERT_EQ(pfm.createFile(fileName), success) << "Creating the file should succeed: " << fileName;
         ASSERT_TRUE(fileExists(fileName)) << "The file is not found: " << fileName;
+
         ASSERT_TRUE(getFileSize(fileName) % PAGE_SIZE == 0) << "File should be based on PAGE_SIZE.";
 
         // Open the file
@@ -155,6 +156,7 @@ namespace PeterDBTesting {
         // Check the integrity of the page
         inBuffer = malloc(PAGE_SIZE);
         generateData(inBuffer, PAGE_SIZE);
+
         ASSERT_EQ(memcmp(inBuffer, outBuffer, PAGE_SIZE), 0)
                                     << "Checking the integrity of the page should succeed.";
 
@@ -212,6 +214,7 @@ namespace PeterDBTesting {
                 updatedReadPageCount, updatedWritePageCount, updatedAppendPageCount), success)
                                     << "Collecting counters should succeed.";
         ASSERT_LT(readPageCount, updatedReadPageCount) << "The readPageCount should have been increased.";
+
         ASSERT_LT(writePageCount, updatedWritePageCount) << "The writePageCount should have been increased.";
 
         // Check the integrity of the page

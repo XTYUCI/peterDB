@@ -2,8 +2,20 @@
 #define _rbfm_h_
 
 #include <vector>
-
+#include <string>
 #include "pfm.h"
+#include <vector>
+#include <cstdio>
+#include <string.h>
+#include <cstdlib>
+#include <iostream>
+#include "pfm.h"
+#include <cmath>
+#include <climits>
+
+#define SLOT_SIZE 4
+
+using namespace std;
 
 namespace PeterDB {
     // Record ID
@@ -98,8 +110,7 @@ namespace PeterDB {
                         RID &rid);
 
         // Read a record identified by the given rid.
-        RC
-        readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor, const RID &rid, void *data);
+        RC readRecord(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor, const RID &rid, void *data);
 
         // Print the record that is passed to this utility method.
         // This method will be mainly used for debugging/testing.
@@ -109,6 +120,7 @@ namespace PeterDB {
         //        age: NULL  height: 7.5  salary: 7500)
         RC printRecord(const std::vector<Attribute> &recordDescriptor, const void *data, std::ostream &out);
 
+        bool isNull(int index, char* nullByte);
         /*****************************************************************************************************
         * IMPORTANT, PLEASE READ: All methods below this comment (other than the constructor and destructor) *
         * are NOT required to be implemented for Project 1                                                   *
@@ -132,6 +144,9 @@ namespace PeterDB {
                 const void *value,                    // used in the comparison
                 const std::vector<std::string> &attributeNames, // a list of projected attributes
                 RBFM_ScanIterator &rbfm_ScanIterator);
+
+        PagedFileManager* pfm;
+
 
     protected:
         RecordBasedFileManager();                                                   // Prevent construction
