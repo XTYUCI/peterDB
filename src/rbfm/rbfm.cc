@@ -45,7 +45,10 @@ namespace PeterDB {
         memcpy(nullP,data,nullBytes);
         bool isNull;
 
+        char * fieldOffsetArray=(char *) malloc(fields*2);
         recordSize+=nullBytes;
+        recordSize+=2*fields;
+        recordSize+=4;  //  |num of nullbytes|    | num of attr|
         for (int i = 0; i < fields; i++)   // iterate all attributes
         {
             int bytePosition = i / 8;
@@ -54,17 +57,22 @@ namespace PeterDB {
             isNull=  ((b >> (7 - bitPosition)) & 0x1);
             if (isNull)
             {
+                memcpy(fieldOffsetArray+i*2,&recordSize,2);
                 continue;
             }
             if (recordDescriptor.at(i).type == TypeInt) {
+                memcpy(fieldOffsetArray+i*2,&recordSize,2);
                 recordSize += 4;
             }
             if (recordDescriptor.at(i).type == TypeReal) {
+                memcpy(fieldOffsetArray+i*2,&recordSize,2);
                 recordSize += 4;
+
             }
             if (recordDescriptor.at(i).type == TypeVarChar) {
-                    int varCharLength;
-                    memcpy(&varCharLength, (char *) data + recordSize, 4);
+                memcpy(fieldOffsetArray+i*2,&recordSize,2);
+                int varCharLength;
+                memcpy(&varCharLength, (char *) data + recordSize-4-fields*2, 4);
                 recordSize += varCharLength;
                 recordSize += 4;
                 }
@@ -75,7 +83,8 @@ namespace PeterDB {
         int pageNums = fileHandle.getNumberOfPages();
         bool isInsert= false;
 
-
+        short nullLength= (short) nullBytes;
+        short fieldLength=(short) fields;
 
         if(pageNums==121)   // if no page exist, appand new page first
         {
@@ -97,7 +106,16 @@ namespace PeterDB {
             freeBytes = freeBytes - recordSize - SLOT_SIZE;   // update freebytes
             memcpy(currentPofPage2 + PAGE_SIZE - 2, &freeBytes, 2);
             memcpy(currentPofPage2 + PAGE_SIZE - 4, &slotNum, 2);
-            memcpy(currentPofPage2 + recordOffset, data, recordSize);           // insert record into page
+            // ***************
+            memcpy(currentPofPage2 + recordOffset , &nullLength ,2);  // insert num of nullbytes
+            memcpy(currentPofPage2+recordOffset+2,&fieldLength,2);
+            for(int i =0;i<fields;i++)
+            {
+                memcpy(currentPofPage2+recordOffset+4+i*2,fieldOffsetArray+i*2 ,2);
+            }
+            memcpy(currentPofPage2 + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+            //********
+
             fileHandle.writePage(pageNums, readPage);       // write page to disk
             free(readPage);
             isInsert= true;
@@ -122,7 +140,16 @@ namespace PeterDB {
             freeBytes = freeBytes - recordSize - SLOT_SIZE;
             memcpy(currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
             memcpy(currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
-            memcpy(currentPofPage + recordOffset, data, recordSize);           // insert record into page
+
+            // ***************
+            memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
+            memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
+            for(int i =0;i<fields;i++)
+            {
+                memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+i*2 ,2);
+            }
+            memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+            //********
             fileHandle.writePage(pageNums-1, tempPage);       // write page to disk
             isInsert= true;
         }
@@ -151,7 +178,15 @@ namespace PeterDB {
                 freeBytes = freeBytes - recordSize - SLOT_SIZE;
                 memcpy( currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
                 memcpy( currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
-                memcpy( currentPofPage + recordOffset, data,recordSize);           // insert record into page
+                // ***************
+                memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
+                memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
+                for(int i =0;i<fields;i++)
+                {
+                    memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+i*2 ,2);
+                }
+                memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+                //********
                 fileHandle.writePage(i, tempPage2);       // write page to disk
                 isInsert= true;
             }
@@ -181,13 +216,21 @@ namespace PeterDB {
                 freeBytes = freeBytes - recordSize - SLOT_SIZE;   // update freebytes
                 memcpy(currentPofPage2 + PAGE_SIZE - 2, &freeBytes, 2);
                 memcpy( currentPofPage2 + PAGE_SIZE - 4, &slotNum, 2);
-                memcpy( currentPofPage2, data, recordSize);           // insert record into page
+                // ***************
+                memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
+                memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
+                for(int i =0;i<fields;i++)
+                {
+                    memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+2*i ,2);
+                }
+                memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+                //********
 
                 fileHandle.writePage(pageNums, readPage);       // write page to disk
                 free(readPage);
             }
-
-            return 0;
+        free(fieldOffsetArray);
+        return 0;
 
 
         }
@@ -209,8 +252,10 @@ namespace PeterDB {
             memcpy(&recordOffset,curPage+PAGE_SIZE-4-slotID*SLOT_SIZE,2);
             short recordSize;
             memcpy(&recordSize,curPage+PAGE_SIZE-4-slotID*SLOT_SIZE+2,2);
+            short numOffields;
+            memcpy(&numOffields,curPage+recordOffset+2,2);
 
-            memcpy(data,curPage+recordOffset,recordSize);
+            memcpy(data,curPage+recordOffset+4+numOffields*2,recordSize-4-numOffields*2);
             free(Page);
             return 0;
         }

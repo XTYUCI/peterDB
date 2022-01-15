@@ -12,16 +12,23 @@
 
 ### 2. Internal Record Format
 - Show your record format design.
-row store
-
+	
+| null indicator | num of fields | filed1offset |filed2 offset | .... | record data |
+			
+	
 Describe how you store a null field.
-store at the beign of a record
+
+check the null indicator by the number position of the field. 
 
 Describe how you store a VarChar field.
-store the length of the varchar and then the varchar it self.
+
+store the varChar field offset and its length.  
 
 Describe how your record design satisfies O(1) field access.
-Does not support the column store now. :)
+
+get the field offset through the position number of field among all fields.
+
+use recordoffset+fieldoffset to access the field. 
 
 ### 3. Page Format
 - Show your page format design.
