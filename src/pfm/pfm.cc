@@ -26,7 +26,7 @@ namespace PeterDB {
         unsigned readPageCounter = 0;
         unsigned writePageCounter = 0;
         unsigned appendPageCounter = 0;
-        unsigned pageNums = 0;
+        int pageNums = 0;
 
         void * newPage= malloc(PAGE_SIZE);
         char * cur= (char *)newPage;

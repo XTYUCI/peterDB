@@ -105,7 +105,7 @@ namespace PeterDBTesting {
 
 
     }
-
+/**
     TEST_F(RBFM_Test, insert_and_read_multiple_records) {
         // Functions tested
         // 1. Create Record-Based File
@@ -245,7 +245,7 @@ namespace PeterDBTesting {
             ASSERT_EQ(memcmp(outBuffer, inBuffer, sizes[i]),
                       0) << "the read data should match the inserted data";
         }
-    }
+    }**/
 
     TEST_F(RBFM_Test, delete_records) {
         // Functions tested
@@ -274,8 +274,10 @@ namespace PeterDBTesting {
 
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
+
         // save the returned RID
         PeterDB::RID rid0 = rid;
+
 
         free(nullsIndicator);
         nullsIndicator = initializeNullFieldsIndicator(recordDescriptor);
@@ -289,11 +291,15 @@ namespace PeterDBTesting {
         // Insert three copies
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
+
         // save the returned RID
         PeterDB::RID rid1 = rid;
 
+
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
+
+
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
 
@@ -321,6 +327,7 @@ namespace PeterDBTesting {
         // Reinsert a record
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
+
         ASSERT_EQ(rid.slotNum, rid0.slotNum) << "Inserted record should use previous deleted slot.";
 
         // Given the rid, read the record from file
@@ -408,6 +415,7 @@ namespace PeterDBTesting {
         // verify the short record has been deleted
         ASSERT_NE(rbfm.readRecord(fileHandle, recordDescriptor, shortRID, outBuffer), success)
                                     << "Read a deleted record should not success.";
+
     }
 
 }// namespace PeterDBTesting
