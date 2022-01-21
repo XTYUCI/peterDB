@@ -33,12 +33,16 @@ namespace PeterDB {
         if(rc==-1){return -1;}
         insertRecordToColumns(0,tablesRecordDescriptor);
         insertRecordToColumns(1,columnsRecordDescriptor);
-        
+
         return 0;
     }
 
     RC RelationManager::deleteCatalog() {
-        return -1;
+        RC rc=rbfm->destroyFile("Tables");
+        if(rc==-1){return -1;}
+        rc=rbfm->destroyFile("Columns");
+        if(rc==-1){return -1;}
+        return 0;
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
