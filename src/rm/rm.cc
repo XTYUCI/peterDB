@@ -26,11 +26,14 @@ namespace PeterDB {
     RC RelationManager::createCatalog() {
         RC rc=rbfm->createFile("Tables");
         if(rc==-1){return -1;}
+        insertRecordToTables(0,"Tables","Tables");
+        insertRecordToTables(1,"Columns","Columns");
+
         rc=rbfm->createFile("Columns");
         if(rc==-1){return -1;}
-
-
-
+        insertRecordToColumns(0,tablesRecordDescriptor);
+        insertRecordToColumns(1,columnsRecordDescriptor);
+        
         return 0;
     }
 
@@ -106,6 +109,7 @@ namespace PeterDB {
     {
         FileHandle fileHandle;
         RC rc= rbfm->openFile("Tables",fileHandle);
+        if(rc==-1){return -1;}
         void * data= malloc(1+4+2+50+50);
         char * PofData=(char *) data;
         int dataSize=0;
@@ -131,6 +135,38 @@ namespace PeterDB {
         return 0;
     }
 
+    RC RelationManager::insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor)
+    {
+        FileHandle fileHandle;
+        RC rc= rbfm->openFile("Columns",fileHandle);
+        if(rc==-1){return -1;}
+        void * data=malloc(PAGE_SIZE);
+        char * PofData=(char *) data;
+        int position=0;
+        char nullindicator=0;
+        for (Attribute attr:recordDescriptor)
+        {
+            int recordSize=0;
+            memcpy(PofData,&nullindicator,1);
+            memcpy(PofData+1,&table_id,4);
+            recordSize+=5;
+            int varcharLength;
+            varcharLength=attr.name.length();
+            memcpy(PofData+recordSize,&varcharLength,4);
+            memcpy(PofData+9,attr.name.c_str(),varcharLength);
+            recordSize=recordSize+4+varcharLength;
+            memcpy(PofData+recordSize,&attr.type,4);
+            memcpy(PofData+recordSize+4,&position,4);
+            recordSize+=8;
+            position+=1;
+            RID rid;
+            RC rc = rbfm->insertRecord(fileHandle,columnsRecordDescriptor,data,rid);
+        }
+        rbfm->closeFile(fileHandle);
+        free(data);
+        return 0;
+    }
+
     RC RelationManager::initializeTablesDescriptor()
     {
         //generate recordDescriptor for tables
@@ -151,7 +187,23 @@ namespace PeterDB {
 
     RC RelationManager::initializeColumnsDescriptor()
     {
-
+        Attribute attr;
+        attr.name="Table_id";
+        attr.type=TypeInt;
+        attr.length=(AttrLength)4;
+        columnsRecordDescriptor.push_back(attr);
+        attr.name="Attribute_name";
+        attr.type=TypeVarChar;
+        attr.length=(AttrLength)VARCHAR_LENGTH;
+        columnsRecordDescriptor.push_back(attr);
+        attr.name="Type";
+        attr.type=TypeInt;
+        attr.length=(AttrLength)4;
+        columnsRecordDescriptor.push_back(attr);
+        attr.name="Position";
+        attr.type=TypeInt;
+        attr.length=(AttrLength)4;
+        columnsRecordDescriptor.push_back(attr);
     }
 
 } // namespace PeterDB
