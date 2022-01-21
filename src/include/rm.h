@@ -70,6 +70,14 @@ namespace PeterDB {
         ~RelationManager();                                                 // Prevent unwanted destruction
         RelationManager(const RelationManager &);                           // Prevent construction by copying
         RelationManager &operator=(const RelationManager &);                // Prevent assignment
+    private:
+
+        RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
+
+        RecordBasedFileManager *rbfm;
+        vector<Attribute> tablesRecordDescriptor;
+        vector<Attribute> columnsRecordDescriptor;
+
 
     };
 
