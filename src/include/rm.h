@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "src/include/rbfm.h"
-
+#define VARCHAR_LENGTH 50
 namespace PeterDB {
 #define RM_EOF (-1)  // end of a scan operator
 
@@ -71,8 +71,10 @@ namespace PeterDB {
         RelationManager(const RelationManager &);                           // Prevent construction by copying
         RelationManager &operator=(const RelationManager &);                // Prevent assignment
     private:
-
+        RC initializeTablesDescriptor();
+        RC initializeColumnsDescriptor();
         RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
+
 
         RecordBasedFileManager *rbfm;
         vector<Attribute> tablesRecordDescriptor;
