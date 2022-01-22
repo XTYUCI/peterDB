@@ -633,7 +633,8 @@ namespace PeterDB {
                             }else{
                                 varcharLength=recordSize-attrOffset;
                             }
-                            memcpy(pData+2,curPofRecord+attrOffset,varcharLength);
+                            memcpy(pData+2,&varcharLength,2);
+                            memcpy(pData+4,curPofRecord+attrOffset,varcharLength);
                         }
                     }
                     else// is null
@@ -651,11 +652,237 @@ namespace PeterDB {
                                         const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                         const std::vector<std::string> &attributeNames,
                                         RBFM_ScanIterator &rbfm_ScanIterator) {
-            return -1;
+                rbfm_ScanIterator.fileHandle=fileHandle;
+                rbfm_ScanIterator.recordDescriptor=recordDescriptor;
+                rbfm_ScanIterator.conditionAttrName=conditionAttribute;
+                rbfm_ScanIterator.compOp=compOp;
+                rbfm_ScanIterator.attributeNames=attributeNames;
+                rbfm_ScanIterator.tempRid.slotNum=1;
+                rbfm_ScanIterator.tempRid.pageNum=0;
+                rbfm_ScanIterator.value=value;
+
+                for(int i=0;i<recordDescriptor.size();i++)
+                {
+                    if(recordDescriptor.at(i).name==conditionAttribute)
+                    {
+                        rbfm_ScanIterator.conditionAttrType=recordDescriptor.at(i).type;
+                        rbfm_ScanIterator.conditionAttrIndex=i;
+                    }
+                }
+
+                for (int i=0;i<recordDescriptor.size();i++)
+                {
+                    for(int j=0;j<attributeNames.size();j++)
+                    {
+                        if(recordDescriptor.at(i).name==attributeNames[j])
+                        {
+                            rbfm_ScanIterator.retrieveAttrIndex.push_back(i);
+                            break;
+                        }
+                    }
+                }
+            if(rbfm_ScanIterator.retrieveAttrIndex.empty()){return -1;}
+
+            return 0;
         }
 
+        // RBFM_ScanIterator FUNCTION***************
 
+        RBFM_ScanIterator::RBFM_ScanIterator()=default;
 
+        RBFM_ScanIterator::~RBFM_ScanIterator()=default;
+
+        RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
+        {
+            RecordBasedFileManager &rbfm=RecordBasedFileManager::instance();
+
+            int totalPageNums=fileHandle.getNumberOfPages();
+            bool findNextRecord=false;
+
+            char * PofCompareValue=(char *)value;
+
+            while(findNextRecord==false && tempRid.pageNum<totalPageNums) // loop until find the first record
+            {
+                void * pageData = malloc(PAGE_SIZE);
+                RC rc= fileHandle.readPage(tempRid.pageNum,pageData);
+                if(rc==-1){return RBFM_EOF;}
+                char * curP= (char *) pageData;
+
+                short totalSlotNum;
+                memcpy(&totalSlotNum,curP+PAGE_SIZE-4,2);
+                for (int i=1;i<=totalSlotNum;i++)
+                {
+                    void * conditionAttrData= malloc(60);
+                    char * PofConAttrData=(char *) conditionAttrData;
+                    rc=rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,conditionAttrName,conditionAttrData);
+                    if(rc!=-1)  // cotain the contionAttr
+                    {
+                        bool isSatisfy=false;
+                        short nullCheck;
+                        memcpy(&nullCheck,PofConAttrData,2);
+                        if(compOp==NO_OP)// no option
+                        {
+                            isSatisfy= true;
+                        }
+                        if(nullCheck==-1) // is  NULL
+                        {
+                            if(PofCompareValue== nullptr && compOp!=NE_OP)
+                            {
+                                isSatisfy= true;
+                            }
+                        }
+                        else
+                        { // not null
+                            if(conditionAttrType==TypeInt)
+                            {
+                                int attrIntValue;
+                                memcpy(&attrIntValue,PofConAttrData+2,4);
+                                int compValue;
+                                memcpy(&compValue,PofCompareValue,4);
+
+                                switch (compOp) {
+                                    case EQ_OP:
+                                        isSatisfy=(attrIntValue==compValue);
+                                        break;
+                                    case LT_OP:
+                                        isSatisfy=(attrIntValue<compValue);
+                                        break;
+                                    case LE_OP:
+                                        isSatisfy=(attrIntValue<=compValue);
+                                        break;
+                                    case GT_OP:
+                                        isSatisfy=(attrIntValue>compValue);
+                                        break;
+                                    case GE_OP:
+                                        isSatisfy=(attrIntValue>=compValue);
+                                        break;
+                                    case NE_OP:
+                                        isSatisfy=(attrIntValue!=compValue);
+                                        break;
+                                }
+                            }
+                            if(conditionAttrType==TypeReal)
+                            {
+                                float attrFloatValue;
+                                memcpy(&attrFloatValue,PofConAttrData+2,4);
+                                float compValue;
+                                memcpy(&compValue,PofCompareValue,4);
+
+                                switch (compOp) {
+                                    case EQ_OP:
+                                        isSatisfy=(attrFloatValue==compValue);
+                                        break;
+                                    case LT_OP:
+                                        isSatisfy=(attrFloatValue<compValue);
+                                        break;
+                                    case LE_OP:
+                                        isSatisfy=(attrFloatValue<=compValue);
+                                        break;
+                                    case GT_OP:
+                                        isSatisfy=(attrFloatValue>compValue);
+                                        break;
+                                    case GE_OP:
+                                        isSatisfy=(attrFloatValue>=compValue);
+                                        break;
+                                    case NE_OP:
+                                        isSatisfy=(attrFloatValue!=compValue);
+                                        break;
+                                }
+                            }
+                            if(conditionAttrType==TypeVarChar)
+                            {
+                                int attrVarcharLength;
+                                memcpy(&attrVarcharLength,PofConAttrData+2,4);
+
+                                int compVarcharLength;
+                                memcpy(&compVarcharLength,PofCompareValue,4);
+
+                                switch (compOp) {
+                                    case EQ_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) ==string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                    case LT_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) < string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                    case LE_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) <=string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                    case GT_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) > string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                    case GE_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) >= string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                    case NE_OP:
+                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) != string(PofCompareValue+4,compVarcharLength));
+                                        break;
+                                }
+                            }
+                        }  // not NULL
+                        if(isSatisfy== true) // if satisfy , retrieve the data
+                        {
+                            char * PofRetrieveRD=(char *) data;
+
+                            //genereate null indicator first
+                            int fields=retrieveAttrIndex.size();
+                            int nullBytesLen = ceil(fields / 8)+1;
+                            auto * nullIndicator = (unsigned char*)malloc(nullBytesLen);
+                            memset(nullIndicator,0, nullBytesLen);
+                            int recordSize=nullBytesLen;
+                            for(int i=0;i<retrieveAttrIndex.size();i++)
+                            {
+                                int index=retrieveAttrIndex[i];
+
+                                void * attributeData= malloc(50);
+                                rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,recordDescriptor.at(index).name,attributeData);
+                                char * PofAttributeData=(char *)attributeData;
+                                short nullCheck;
+                                memcpy(&nullCheck,PofAttributeData,2);
+                                if(nullCheck==-1) //is null
+                                {
+                                    int byteIndex = i / 8;
+                                    int bitIndex = i % 8;
+                                    nullIndicator[byteIndex] += pow(2, 7-bitIndex);
+                                }else {
+
+                                    if (recordDescriptor.at(index).type == TypeInt) {
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        recordSize+=4;
+                                    }
+                                    if (recordDescriptor.at(index).type == TypeReal)
+                                    {
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        recordSize+=4;
+                                    }
+                                    if (recordDescriptor.at(index).type == TypeVarChar)
+                                    {
+                                        int vcLen;
+                                        memcpy(&vcLen,PofAttributeData+2,4);
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        recordSize+=4;
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+6,vcLen);
+                                        recordSize+=vcLen;
+                                    }
+                                }
+                                free(attributeData);
+                            }
+                            memcpy(PofRetrieveRD,nullIndicator,nullBytesLen);
+                            free(nullIndicator);
+                        }// retrieve end
+                    }// if not contain the attribute or not satisfy free the memory and continue the for loop
+                    free(conditionAttrData);
+                }
+                tempRid.pageNum+=1;
+                free(pageData);
+            } // while end
+            return 0;
+        }
+
+        RC RBFM_ScanIterator::close()
+        {
+            retrieveAttrIndex.clear();
+            return 0;
+        }
 
     } // namespace PeterDB
 

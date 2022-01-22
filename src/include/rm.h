@@ -75,6 +75,7 @@ namespace PeterDB {
         RC initializeColumnsDescriptor();
         RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
         RC insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor);
+        RC getTablesMaxIndex();
 
         RecordBasedFileManager *rbfm;
         vector<Attribute> tablesRecordDescriptor;

@@ -13,8 +13,6 @@ namespace PeterDB {
         RecordBasedFileManager& rbfm = RecordBasedFileManager::instance();
         this->rbfm = &rbfm;
 
-        //IndexManager& ix = IndexManager::instance();
-        //this->ix = &ix;
     }
 
     RelationManager::~RelationManager() = default;
@@ -26,13 +24,13 @@ namespace PeterDB {
     RC RelationManager::createCatalog() {
         RC rc=rbfm->createFile("Tables");
         if(rc==-1){return -1;}
-        insertRecordToTables(0,"Tables","Tables");
-        insertRecordToTables(1,"Columns","Columns");
+        insertRecordToTables(1,"Tables","Tables");
+        insertRecordToTables(2,"Columns","Columns");
 
         rc=rbfm->createFile("Columns");
         if(rc==-1){return -1;}
-        insertRecordToColumns(0,tablesRecordDescriptor);
-        insertRecordToColumns(1,columnsRecordDescriptor);
+        insertRecordToColumns(1,tablesRecordDescriptor);
+        insertRecordToColumns(2,columnsRecordDescriptor);
 
         return 0;
     }
@@ -46,11 +44,31 @@ namespace PeterDB {
     }
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
-        return -1;
+        if(tableName=="Tables"||tableName=="Columns"){return -1;}
+        RC rc= rbfm->createFile(tableName);
+        if(rc==-1){return -1;}
+        int maxTablesIndex=getTablesMaxIndex(); //TODO
+
+        rc= insertRecordToTables(maxTablesIndex+1,tableName,tableName);
+        if(rc==-1){return -1;}
+
+        rc= insertRecordToColumns(maxTablesIndex+1,attrs);
+        if(rc==-1){return -1;}
+        return 0;
     }
 
     RC RelationManager::deleteTable(const std::string &tableName) {
-        return -1;
+        if(tableName=="Tables"||tableName=="Columns"){return -1;}
+        RC rc=rbfm->destroyFile(tableName);
+        FileHandle fileHandle;
+        if(rc==-1){return -1;}
+        rc = rbfm ->openFile("Tables",fileHandle);
+        if(rc==-1){return -1;}
+
+        RID deleteRID;
+        //TODO GETTHE RID
+
+        return 0;
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
@@ -88,7 +106,9 @@ namespace PeterDB {
                              const void *value,
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
-        return -1;
+
+
+        return 0;
     }
 
     RM_ScanIterator::RM_ScanIterator() = default;
@@ -99,6 +119,7 @@ namespace PeterDB {
 
     RC RM_ScanIterator::close() { return -1; }
 
+
     // Extra credit work
     RC RelationManager::dropAttribute(const std::string &tableName, const std::string &attributeName) {
         return -1;
@@ -108,6 +129,13 @@ namespace PeterDB {
     RC RelationManager::addAttribute(const std::string &tableName, const Attribute &attr) {
         return -1;
     }
+    //******************************
+
+    RC RelationManager::getTablesMaxIndex()
+    {
+        //TODO
+    }
+
 
     RC RelationManager::insertRecordToTables(int ID, const string &tableName, const string &fileName)
     {
@@ -146,7 +174,7 @@ namespace PeterDB {
         if(rc==-1){return -1;}
         void * data=malloc(PAGE_SIZE);
         char * PofData=(char *) data;
-        int position=0;
+        int position=1;
         char nullindicator=0;
         for (Attribute attr:recordDescriptor)
         {
@@ -160,11 +188,12 @@ namespace PeterDB {
             memcpy(PofData+9,attr.name.c_str(),varcharLength);
             recordSize=recordSize+4+varcharLength;
             memcpy(PofData+recordSize,&attr.type,4);
-            memcpy(PofData+recordSize+4,&position,4);
-            recordSize+=8;
+            memcpy(PofData+recordSize+4,&attr.length,4);
+            memcpy(PofData+recordSize+8,&position,4);
+            recordSize+=12;
             position+=1;
             RID rid;
-            RC rc = rbfm->insertRecord(fileHandle,columnsRecordDescriptor,data,rid);
+            rbfm->insertRecord(fileHandle,columnsRecordDescriptor,data,rid);
         }
         rbfm->closeFile(fileHandle);
         free(data);
@@ -201,6 +230,10 @@ namespace PeterDB {
         attr.length=(AttrLength)VARCHAR_LENGTH;
         columnsRecordDescriptor.push_back(attr);
         attr.name="Type";
+        attr.type=TypeInt;
+        attr.length=(AttrLength)4;
+        columnsRecordDescriptor.push_back(attr);
+        attr.name="Length";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         columnsRecordDescriptor.push_back(attr);

@@ -66,16 +66,28 @@ namespace PeterDB {
 
     class RBFM_ScanIterator {
     public:
-        RBFM_ScanIterator() = default;;
+        RBFM_ScanIterator();
 
-        ~RBFM_ScanIterator() = default;;
+        ~RBFM_ScanIterator();
 
         // Never keep the results in the memory. When getNextRecord() is called,
         // a satisfying record needs to be fetched from the file.
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
-        RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
+        RC getNextRecord(RID &rid, void *data);
+        RC close();
 
-        RC close() { return -1; };
+        FileHandle fileHandle;
+        vector<Attribute> recordDescriptor;
+        string conditionAttrName;
+        int conditionAttrIndex;
+        AttrType conditionAttrType;
+        vector<string> attributeNames;
+        vector<int> retrieveAttrIndex;
+        CompOp compOp;
+        RID tempRid;
+        const void* value;
+
+
     };
 
     class RecordBasedFileManager {
@@ -153,7 +165,6 @@ namespace PeterDB {
         ~RecordBasedFileManager();                                                  // Prevent unwanted destruction
         RecordBasedFileManager(const RecordBasedFileManager &);                     // Prevent construction by copying
         RecordBasedFileManager &operator=(const RecordBasedFileManager &);          // Prevent assignment
-
     };
 
 } // namespace PeterDB
