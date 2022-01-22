@@ -868,14 +868,20 @@ namespace PeterDB {
                             }
                             memcpy(PofRetrieveRD,nullIndicator,nullBytesLen);
                             free(nullIndicator);
+                            findNextRecord= true;
+                            rid.slotNum=tempRid.slotNum;
+                            rid.pageNum=tempRid.pageNum;
+                            break;
                         }// retrieve end
+
                     }// if not contain the attribute or not satisfy free the memory and continue the for loop
                     free(conditionAttrData);
+                    tempRid.slotNum+=1;
                 }
                 tempRid.pageNum+=1;
                 free(pageData);
             } // while end
-            return 0;
+            return RBFM_EOF;
         }
 
         RC RBFM_ScanIterator::close()

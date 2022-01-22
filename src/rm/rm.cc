@@ -72,7 +72,10 @@ namespace PeterDB {
     }
 
     RC RelationManager::getAttributes(const std::string &tableName, std::vector<Attribute> &attrs) {
-        return -1;
+
+
+
+        return 0;
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
@@ -107,6 +110,8 @@ namespace PeterDB {
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
 
+        FileHandle fileHandle;
+        RC rc=rbfm->openFile(tableName,rm_ScanIterator.rbfm_scanIterator.fileHandle);
 
         return 0;
     }
@@ -115,9 +120,20 @@ namespace PeterDB {
 
     RM_ScanIterator::~RM_ScanIterator() = default;
 
-    RC RM_ScanIterator::getNextTuple(RID &rid, void *data) { return RM_EOF; }
+    RC RM_ScanIterator::getNextTuple(RID &rid, void *data)
+    {
+        RC rc=rbfm_scanIterator.getNextRecord(rid,data);
+        if(rc!=RBFM_EOF){return -1;}
+        return RM_EOF;
+    }
 
-    RC RM_ScanIterator::close() { return -1; }
+    RC RM_ScanIterator::close() {
+        rbfm_scanIterator.close();
+        rbfm_scanIterator.fileHandle.closeFile();
+        return 0; }
+
+
+
 
 
     // Extra credit work

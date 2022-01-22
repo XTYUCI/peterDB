@@ -20,6 +20,8 @@ namespace PeterDB {
         RC getNextTuple(RID &rid, void *data);
 
         RC close();
+
+        RBFM_ScanIterator rbfm_scanIterator;
     };
 
     // Relation Manager
