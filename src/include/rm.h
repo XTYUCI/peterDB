@@ -22,6 +22,7 @@ namespace PeterDB {
         RC close();
 
         RBFM_ScanIterator rbfm_scanIterator;
+
     };
 
     // Relation Manager
@@ -67,6 +68,8 @@ namespace PeterDB {
 
         RC dropAttribute(const std::string &tableName, const std::string &attributeName);
 
+        RC destroyFile(const std::string &fileName);
+
     protected:
         RelationManager();                                                  // Prevent construction
         ~RelationManager();                                                 // Prevent unwanted destruction
@@ -77,7 +80,8 @@ namespace PeterDB {
         RC initializeColumnsDescriptor();
         RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
         RC insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor);
-        RC getTablesMaxIndex();
+        int getTablesMaxIndex();
+        int getTableId(const string &tableName,RID &rid);
 
         RecordBasedFileManager *rbfm;
         vector<Attribute> tablesRecordDescriptor;

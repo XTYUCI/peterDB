@@ -86,7 +86,7 @@ namespace PeterDB {
         short nullLength= (short) nullBytes;
         short fieldLength=(short) fields;
 
-        if(pageNums==121)   // if no page exist, appand new page first
+        if(pageNums==0)   // if no page exist, appand new page first
         {
             void *appendPage = malloc(PAGE_SIZE);
             fileHandle.appendPage(appendPage);    // append a new page to insert
@@ -122,106 +122,103 @@ namespace PeterDB {
         }
 
         // if page num >0 check the last page first.
-
-        void *tempPage = malloc(PAGE_SIZE);
-        fileHandle.readPage(pageNums-1, tempPage);
-        char * currentPofPage= (char *) tempPage;
-        short freeBytes;
-        short slotNum;
-        memcpy(&freeBytes, currentPofPage + PAGE_SIZE - 2, 2);
-        memcpy(&slotNum, currentPofPage + PAGE_SIZE - 4, 2);
-        if (freeBytes >= (recordSize + SLOT_SIZE)) {
-            rid.pageNum = pageNums-1;
-            bool hasEmptySlot= false;
-            short insertSlotNum=slotNum+1;
-            for (int i=1;i<=slotNum;i++)
-            {
-                short offsetBefore;
-                memcpy(&offsetBefore,currentPofPage+PAGE_SIZE-4-i*SLOT_SIZE ,2);
-                if(offsetBefore==-1)
-                {
-                    hasEmptySlot= true;
-                    insertSlotNum=i;
-                }
-            }
-            short recordOffset = PAGE_SIZE - 4 - slotNum * SLOT_SIZE - freeBytes;                //set record offset
-
-            memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum , &recordOffset, 2);
-            memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum  + 2, &recordSize,2); // set record size
-            freeBytes = freeBytes - recordSize - SLOT_SIZE;
-            memcpy(currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
-            if(!hasEmptySlot)
-            {
-                slotNum=slotNum+1;
-            }
-            memcpy(currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
-            rid.slotNum=insertSlotNum;
-
-            // ***************
-            memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
-            memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
-            for(int i =0;i<fields;i++)
-            {
-                memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+i*2 ,2);
-            }
-            memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
-            //********
-            fileHandle.writePage(pageNums-1, tempPage);       // write page to disk
-            isInsert= true;
-        }
-        free(tempPage);
-
-        // iterate all exist pages
-
-        for (int i = 0; i < pageNums-1; i++)
-        {
-            void *tempPage2 = malloc(PAGE_SIZE);
-            fileHandle.readPage(i, tempPage2);
-            char *currentPofPage = (char *) tempPage2;
+        if(!isInsert) {
+            void *tempPage = malloc(PAGE_SIZE);
+            fileHandle.readPage(pageNums - 1, tempPage);
+            char *currentPofPage = (char *) tempPage;
             short freeBytes;
             short slotNum;
-            memcpy(&freeBytes,  currentPofPage + PAGE_SIZE - 2, 2);
-            memcpy(&slotNum,  currentPofPage + PAGE_SIZE - 4, 2);
-            if (freeBytes >= (recordSize + SLOT_SIZE))    // check enough free space
-            {
-                rid.pageNum = i;
-                bool hasEmptySlot= false;
-                short insertSlotNum=slotNum+1;
-                for (int i=1;i<=slotNum;i++)
-                {
+            memcpy(&freeBytes, currentPofPage + PAGE_SIZE - 2, 2);
+            memcpy(&slotNum, currentPofPage + PAGE_SIZE - 4, 2);
+            if (freeBytes >= (recordSize + SLOT_SIZE)) {
+                rid.pageNum = pageNums - 1;
+                bool hasEmptySlot = false;
+                short insertSlotNum = slotNum + 1;
+                for (int i = 1; i <= slotNum; i++) {
                     short offsetBefore;
-                    memcpy(&offsetBefore,currentPofPage+PAGE_SIZE-4-i*SLOT_SIZE ,2);
-                    if(offsetBefore==-1)
-                    {
-                        hasEmptySlot= true;
-                        insertSlotNum=i;
+                    memcpy(&offsetBefore, currentPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, 2);
+                    if (offsetBefore == -1) {
+                        hasEmptySlot = true;
+                        insertSlotNum = i;
                     }
                 }
-                short recordOffset =PAGE_SIZE - 4 - slotNum  * SLOT_SIZE - freeBytes;                //set record offset
-                memcpy( currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum, &recordOffset, 2);
-                memcpy( currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum + 2, &recordSize,2); // set record size
+                short recordOffset = PAGE_SIZE - 4 - slotNum * SLOT_SIZE - freeBytes;                //set record offset
+
+                memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum, &recordOffset, 2);
+                memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum + 2, &recordSize,
+                       2); // set record size
                 freeBytes = freeBytes - recordSize - SLOT_SIZE;
-                memcpy( currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
-                if(!hasEmptySlot)
-                {
-                    slotNum=slotNum+1;
+                memcpy(currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
+                if (!hasEmptySlot) {
+                    slotNum = slotNum + 1;
                 }
-                memcpy( currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
-                rid.slotNum=insertSlotNum;
+                memcpy(currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
+                rid.slotNum = insertSlotNum;
 
                 // ***************
-                memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
-                memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
-                for(int i =0;i<fields;i++)
-                {
-                    memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+i*2 ,2);
+                memcpy(currentPofPage + recordOffset, &nullLength, 2);  // insert num of nullbytes
+                memcpy(currentPofPage + recordOffset + 2, &fieldLength, 2);
+                for (int i = 0; i < fields; i++) {
+                    memcpy(currentPofPage + recordOffset + 4 + i * 2, fieldOffsetArray + i * 2, 2);
                 }
-                memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+                memcpy(currentPofPage + recordOffset + 4 + fields * 2, data,
+                       recordSize - 4 - 2 * fields);           // insert record into page
                 //********
-                fileHandle.writePage(i, tempPage2);       // write page to disk
-                isInsert= true;
+                fileHandle.writePage(pageNums - 1, tempPage);       // write page to disk
+                isInsert = true;
             }
-            free(tempPage2);
+            free(tempPage);
+        }
+        // iterate all exist pages
+        if(!isInsert) {
+            for (int i = 0; i < pageNums - 1; i++) {
+                void *tempPage2 = malloc(PAGE_SIZE);
+                fileHandle.readPage(i, tempPage2);
+                char *currentPofPage = (char *) tempPage2;
+                short freeBytes;
+                short slotNum;
+                memcpy(&freeBytes, currentPofPage + PAGE_SIZE - 2, 2);
+                memcpy(&slotNum, currentPofPage + PAGE_SIZE - 4, 2);
+                if (freeBytes >= (recordSize + SLOT_SIZE))    // check enough free space
+                {
+                    rid.pageNum = i;
+                    bool hasEmptySlot = false;
+                    short insertSlotNum = slotNum + 1;
+                    for (int i = 1; i <= slotNum; i++) {
+                        short offsetBefore;
+                        memcpy(&offsetBefore, currentPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, 2);
+                        if (offsetBefore == -1) {
+                            hasEmptySlot = true;
+                            insertSlotNum = i;
+                        }
+                    }
+                    short recordOffset =
+                            PAGE_SIZE - 4 - slotNum * SLOT_SIZE - freeBytes;                //set record offset
+                    memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum, &recordOffset, 2);
+                    memcpy(currentPofPage + PAGE_SIZE - 4 - SLOT_SIZE * insertSlotNum + 2, &recordSize,
+                           2); // set record size
+                    freeBytes = freeBytes - recordSize - SLOT_SIZE;
+                    memcpy(currentPofPage + PAGE_SIZE - 2, &freeBytes, 2);
+                    if (!hasEmptySlot) {
+                        slotNum = slotNum + 1;
+                    }
+                    memcpy(currentPofPage + PAGE_SIZE - 4, &slotNum, 2);
+                    rid.slotNum = insertSlotNum;
+
+                    // ***************
+                    memcpy(currentPofPage + recordOffset, &nullLength, 2);  // insert num of nullbytes
+                    memcpy(currentPofPage + recordOffset + 2, &fieldLength, 2);
+                    for (int i = 0; i < fields; i++) {
+                        memcpy(currentPofPage + recordOffset + 4 + i * 2, fieldOffsetArray + i * 2, 2);
+                    }
+                    memcpy(currentPofPage + recordOffset + 4 + fields * 2, data,
+                           recordSize - 4 - 2 * fields);           // insert record into page
+                    //********
+                    fileHandle.writePage(i, tempPage2);       // write page to disk
+                    isInsert = true;
+                }
+                free(tempPage2);
+            }
         }
 
             // no enough space in existed pages, we need to append a new page
@@ -248,13 +245,13 @@ namespace PeterDB {
                 memcpy(currentPofPage2 + PAGE_SIZE - 2, &freeBytes, 2);
                 memcpy( currentPofPage2 + PAGE_SIZE - 4, &slotNum, 2);
                 // ***************
-                memcpy(currentPofPage + recordOffset , &nullLength ,2);  // insert num of nullbytes
-                memcpy(currentPofPage+recordOffset+2,&fieldLength,2);
+                memcpy(currentPofPage2 + recordOffset , &nullLength ,2);  // insert num of nullbytes
+                memcpy(currentPofPage2+recordOffset+2,&fieldLength,2);
                 for(int i =0;i<fields;i++)
                 {
-                    memcpy(currentPofPage+recordOffset+4+i*2,fieldOffsetArray+2*i ,2);
+                    memcpy(currentPofPage2+recordOffset+4+i*2,fieldOffsetArray+2*i ,2);
                 }
-                memcpy(currentPofPage + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
+                memcpy(currentPofPage2 + recordOffset+4+fields*2, data, recordSize-4-2*fields);           // insert record into page
                 //********
 
                 fileHandle.writePage(pageNums, readPage);       // write page to disk
@@ -327,6 +324,24 @@ namespace PeterDB {
             memcpy(&freebytesBeforeDelete,curPofPage+PAGE_SIZE-2,2);
             short recordOffsetToDelete;
             memcpy(&recordOffsetToDelete,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+
+            if(recordOffsetToDelete==-1)
+            {
+                return -1;
+            }
+            if(recordOffsetToDelete<=-4)
+            {
+                short migratePageNum;
+                short migrateSlotNum;
+                memcpy(&migratePageNum,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+                memcpy(&migrateSlotNum,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
+                RID migrateRID;
+                migrateRID.pageNum=(-1)*(migratePageNum+5);
+                migrateRID.slotNum=(-1)*(migrateSlotNum+5);
+
+                return deleteRecord(fileHandle,recordDescriptor,migrateRID);
+            }
+
             short recordSizeToDelete;
             memcpy(&recordSizeToDelete,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
 
@@ -345,8 +360,9 @@ namespace PeterDB {
             }
 
             //delete and migrate ***
-            memcpy( curPofPage+recordOffsetToDelete,curPofPage+recordOffsetToDelete+recordSizeToDelete,PAGE_SIZE-recordSizeToDelete-recordOffsetToDelete-freebytesBeforeDelete-4-slotNumBeforeDelete*4); // delete and migrate
-            memset(curPofPage+recordOffsetToDelete+recordSizeToDelete,0,recordSizeToDelete);
+            int recordAfterSize=PAGE_SIZE-recordSizeToDelete-recordOffsetToDelete-freebytesBeforeDelete-4-slotNumBeforeDelete*4;
+            memcpy( curPofPage+recordOffsetToDelete,curPofPage+recordOffsetToDelete+recordSizeToDelete,recordAfterSize); // delete and migrate
+            memset(curPofPage+recordOffsetToDelete+recordAfterSize,0,recordSizeToDelete);
 
             if(rid.slotNum<slotNumBeforeDelete) {
                 for (short i = rid.slotNum + 1; i <= slotNumBeforeDelete; i++) {
@@ -590,17 +606,33 @@ namespace PeterDB {
             fileHandle.readPage(rid.pageNum,Page);
             char  * curP=(char *)Page;
             short recordSize;
+            short recordOffset;
+            memcpy(&recordOffset,curP+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
             memcpy(&recordSize,curP+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
-            free(Page);
+            if(recordOffset==-1)
+            {
+                return -1;
+            }
+            if(recordOffset<=-4)
+            {
+                short migratePageNum;
+                short migrateSlotNum;
+                memcpy(&migratePageNum,curP+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+                memcpy(&migrateSlotNum,curP+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
+                RID migrateRID;
+                migrateRID.pageNum=(-1)*(migratePageNum+5);
+                migrateRID.slotNum=(-1)*(migrateSlotNum+5);
 
-            void * recordData =malloc(PAGE_SIZE);
-            readRecord(fileHandle,recordDescriptor,rid,recordData);
-            char * curPofRecord=(char *) recordData;
+                return readAttribute(fileHandle,recordDescriptor,migrateRID,attributeName,data);
+
+            }
+
             int fields = recordDescriptor.size();  // get fields
 
             short nullBytes;
-            memcpy(&nullBytes,curPofRecord,2);
+            memcpy(&nullBytes,curP+recordOffset,2);
             char * nullP=( char *) malloc(nullBytes);
+            memcpy(nullP,curP+recordOffset+4+fields*2,nullBytes);
             bool isNull;
 
             char * pData= (char *)data;
@@ -613,39 +645,53 @@ namespace PeterDB {
                 isNull=  ((b >> (7 - bitPosition)) & 0x1);
                 if(recordDescriptor.at(i).name==attributeName)
                 {
+                    auto * nullIndicator = (unsigned char*)malloc(1);
+                    memset(nullIndicator,0, 1);
                     if(!isNull)
                     {
-                        short checkNull=0;
-                        memcpy(pData,&checkNull,2);
+                        //short checkNull=0;
+                        //memcpy(pData,&checkNull,2);
+                        memcpy(pData,nullIndicator,1);
                         if(recordDescriptor.at(i).type==TypeInt||recordDescriptor.at(i).type==TypeReal) {
                             short attrOffset;
-                            memcpy(&attrOffset,curPofRecord+4+nullBytes+i*2,2);
-                            memcpy(pData+2,curPofRecord+attrOffset,4);
+                            memcpy(&attrOffset,curP+recordOffset+4+i*2,2);
+                            memcpy(pData+1,curP+recordOffset+attrOffset,4);
+
                         }
                         if(recordDescriptor.at(i).type==TypeVarChar) {
                             short attrOffset;
-                            memcpy(&attrOffset,curPofRecord+4+nullBytes+i*2,2);
+                            memcpy(&attrOffset,curP+recordOffset+4+i*2,2);
                             short varcharLength;
                             if(i<fields-1) {
                                 short attOffsetOfNext;
-                                memcpy(&attOffsetOfNext, curPofRecord + 4 + nullBytes + (i + 1) * 2, 2);
-                                varcharLength=attOffsetOfNext-attrOffset;
+                                memcpy(&attOffsetOfNext, curP+recordOffset + 4  + (i + 1) * 2, 2);
+                                varcharLength=attOffsetOfNext-attrOffset-4;
                             }else{
-                                varcharLength=recordSize-attrOffset;
+                                varcharLength=recordSize-attrOffset-4;
                             }
-                            memcpy(pData+2,&varcharLength,2);
-                            memcpy(pData+4,curPofRecord+attrOffset,varcharLength);
+                            int vcLen=(int) varcharLength;
+                            memcpy(pData+1,&vcLen,4);
+                            memcpy(pData+5,curP+recordOffset+attrOffset+4,varcharLength);
                         }
                     }
                     else// is null
                     {
-                        short checkNull=-1;
-                        memcpy(pData,&checkNull,2);
+                        //short checkNull=-1;
+                        //memcpy(pData,&checkNull,2);
+                        int byteIndex = 0/ 8;
+                        int bitIndex = 0 % 8;
+                        nullIndicator[byteIndex] += pow(2, 7-bitIndex);
+                        memcpy(pData,nullIndicator,1);
                     }
+                    free(nullIndicator);
+                    free(nullP);
+                    free(Page);
+                    return 0;
                 }
             }
-            free(recordData);
-            return 0;
+            free(nullP);
+            free(Page);
+            return -1;
         }
 
         RC RecordBasedFileManager::scan(FileHandle &fileHandle, const std::vector<Attribute> &recordDescriptor,
@@ -697,11 +743,11 @@ namespace PeterDB {
             RecordBasedFileManager &rbfm=RecordBasedFileManager::instance();
 
             int totalPageNums=fileHandle.getNumberOfPages();
-            bool findNextRecord=false;
+
 
             char * PofCompareValue=(char *)value;
 
-            while(findNextRecord==false && tempRid.pageNum<totalPageNums) // loop until find the first record
+            while(tempRid.pageNum<totalPageNums) // loop until find the first record
             {
                 void * pageData = malloc(PAGE_SIZE);
                 RC rc= fileHandle.readPage(tempRid.pageNum,pageData);
@@ -710,23 +756,37 @@ namespace PeterDB {
 
                 short totalSlotNum;
                 memcpy(&totalSlotNum,curP+PAGE_SIZE-4,2);
-                for (int i=1;i<=totalSlotNum;i++)
+                if(tempRid.slotNum<=totalSlotNum)
                 {
-                    void * conditionAttrData= malloc(60);
-                    char * PofConAttrData=(char *) conditionAttrData;
+                    if(conditionAttrName=="" && compOp==NO_OP){
+                        rid.slotNum=tempRid.slotNum;
+                        rid.pageNum=tempRid.pageNum;
+                        tempRid.slotNum+=1;
+                        free(pageData);
+                        return 0;}
+                    void * conditionAttrData= malloc(100);
                     rc=rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,conditionAttrName,conditionAttrData);
+                    char * PofConAttrData=(char *) conditionAttrData;
                     if(rc!=-1)  // cotain the contionAttr
                     {
                         bool isSatisfy=false;
-                        short nullCheck;
-                        memcpy(&nullCheck,PofConAttrData,2);
+                        //short nullCheck;
+                        //memcpy(&nullCheck,PofConAttrData,2);
+                        char * nullP=( char *) malloc(1);
+                        memcpy(nullP,PofConAttrData,1);
+                        bool isNull;
+                        int bytePosition = 0 / 8;
+                        int bitPosition = 0 % 8;
+                        char b = nullP[bytePosition];
+                        isNull=  ((b >> (7 - bitPosition)) & 0x1);
+
                         if(compOp==NO_OP)// no option
                         {
                             isSatisfy= true;
                         }
-                        if(nullCheck==-1) // is  NULL
+                        if(isNull) // is  NULL
                         {
-                            if(PofCompareValue== nullptr && compOp!=NE_OP)
+                            if(PofCompareValue== nullptr && compOp==EQ_OP)
                             {
                                 isSatisfy= true;
                             }
@@ -736,7 +796,7 @@ namespace PeterDB {
                             if(conditionAttrType==TypeInt)
                             {
                                 int attrIntValue;
-                                memcpy(&attrIntValue,PofConAttrData+2,4);
+                                memcpy(&attrIntValue,PofConAttrData+1,4);
                                 int compValue;
                                 memcpy(&compValue,PofCompareValue,4);
 
@@ -764,7 +824,7 @@ namespace PeterDB {
                             if(conditionAttrType==TypeReal)
                             {
                                 float attrFloatValue;
-                                memcpy(&attrFloatValue,PofConAttrData+2,4);
+                                memcpy(&attrFloatValue,PofConAttrData+1,4);
                                 float compValue;
                                 memcpy(&compValue,PofCompareValue,4);
 
@@ -792,33 +852,34 @@ namespace PeterDB {
                             if(conditionAttrType==TypeVarChar)
                             {
                                 int attrVarcharLength;
-                                memcpy(&attrVarcharLength,PofConAttrData+2,4);
+                                memcpy(&attrVarcharLength,PofConAttrData+1,4);
 
                                 int compVarcharLength;
                                 memcpy(&compVarcharLength,PofCompareValue,4);
 
                                 switch (compOp) {
                                     case EQ_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) ==string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) ==string(PofCompareValue+4,compVarcharLength));
                                         break;
                                     case LT_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) < string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) < string(PofCompareValue+4,compVarcharLength));
                                         break;
                                     case LE_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) <=string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) <=string(PofCompareValue+4,compVarcharLength));
                                         break;
                                     case GT_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) > string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) > string(PofCompareValue+4,compVarcharLength));
                                         break;
                                     case GE_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) >= string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) >= string(PofCompareValue+4,compVarcharLength));
                                         break;
                                     case NE_OP:
-                                        isSatisfy=(string(PofConAttrData+6,attrVarcharLength) != string(PofCompareValue+4,compVarcharLength));
+                                        isSatisfy=(string(PofConAttrData+5,attrVarcharLength) != string(PofCompareValue+4,compVarcharLength));
                                         break;
                                 }
                             }
                         }  // not NULL
+                        free(nullP);
                         if(isSatisfy== true) // if satisfy , retrieve the data
                         {
                             char * PofRetrieveRD=(char *) data;
@@ -832,13 +893,21 @@ namespace PeterDB {
                             for(int i=0;i<retrieveAttrIndex.size();i++)
                             {
                                 int index=retrieveAttrIndex[i];
-
                                 void * attributeData= malloc(50);
                                 rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,recordDescriptor.at(index).name,attributeData);
                                 char * PofAttributeData=(char *)attributeData;
-                                short nullCheck;
-                                memcpy(&nullCheck,PofAttributeData,2);
-                                if(nullCheck==-1) //is null
+
+                                //short nullCheck;
+                                //memcpy(&nullCheck,PofAttributeData,2);
+                                char * nullP2=( char *) malloc(1);
+                                memcpy(nullP2,PofAttributeData,1);
+                                bool isNull2;
+                                int bytePosition2 = 0 / 8;
+                                int bitPosition2 = 0 % 8;
+                                char b2 = nullP2[bytePosition2];
+                                isNull2=  ((b2 >> (7 - bitPosition2)) & 0x1);
+
+                                if(isNull2) //is null
                                 {
                                     int byteIndex = i / 8;
                                     int bitIndex = i % 8;
@@ -846,41 +915,45 @@ namespace PeterDB {
                                 }else {
 
                                     if (recordDescriptor.at(index).type == TypeInt) {
-                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+1,4);
                                         recordSize+=4;
                                     }
                                     if (recordDescriptor.at(index).type == TypeReal)
                                     {
-                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+1,4);
                                         recordSize+=4;
                                     }
                                     if (recordDescriptor.at(index).type == TypeVarChar)
                                     {
                                         int vcLen;
-                                        memcpy(&vcLen,PofAttributeData+2,4);
-                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+2,4);
+                                        memcpy(&vcLen,PofAttributeData+1,4);
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+1,4);
                                         recordSize+=4;
-                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+6,vcLen);
+                                        memcpy(PofRetrieveRD+recordSize,PofAttributeData+5,vcLen);
                                         recordSize+=vcLen;
                                     }
                                 }
                                 free(attributeData);
+                                free(nullP2);
                             }
                             memcpy(PofRetrieveRD,nullIndicator,nullBytesLen);
                             free(nullIndicator);
-                            findNextRecord= true;
                             rid.slotNum=tempRid.slotNum;
                             rid.pageNum=tempRid.pageNum;
-                            break;
+                            tempRid.slotNum+=1;
+                            free(conditionAttrData);
+                            free(pageData);
+                            return 0;
                         }// retrieve end
 
                     }// if not contain the attribute or not satisfy free the memory and continue the for loop
                     free(conditionAttrData);
                     tempRid.slotNum+=1;
                 }
-                tempRid.pageNum+=1;
+                if(tempRid.slotNum>totalSlotNum){tempRid.pageNum+=1;}
+
                 free(pageData);
-            } // while end
+            } // end
             return RBFM_EOF;
         }
 
