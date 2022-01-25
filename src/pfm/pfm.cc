@@ -57,9 +57,8 @@ namespace PeterDB {
 
         fclose(fp);
 
-        int fd;
-        fd= remove(fileName.c_str());
-        return fd;
+        remove(fileName.c_str());
+        return 0;
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
@@ -209,8 +208,7 @@ namespace PeterDB {
         {
             return -1;
         }
-        int fd;
-        fd= fclose(fileP);
+        fclose(fileP);
         fileP=NULL;
         return 0;
     }

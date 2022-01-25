@@ -317,7 +317,7 @@ namespace PeterDBTesting {
         destroyFile = false; // the table is already deleted.
 
     }
-
+/**
     TEST_F(RM_Scan_Test, simple_scan) {
         // Functions Tested
         // 1. Simple scan
@@ -1017,6 +1017,6 @@ namespace PeterDBTesting {
 
         checkPrintRecord("emp_name: Peter Anteater, age: 34, height: 175.3, salary: 24123.90, ssn: 123479765",
                          stream.str());
-    }
+    }**/
 
 } // namespace PeterDBTesting

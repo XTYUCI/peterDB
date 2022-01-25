@@ -18,6 +18,7 @@
 using namespace std;
 
 namespace PeterDB {
+
     // Record ID
     typedef struct {
         unsigned pageNum;           // page number
@@ -64,31 +65,7 @@ namespace PeterDB {
     //  }
     //  rbfmScanIterator.close();
 
-    class RBFM_ScanIterator {
-    public:
-        RBFM_ScanIterator();
-
-        ~RBFM_ScanIterator();
-
-        // Never keep the results in the memory. When getNextRecord() is called,
-        // a satisfying record needs to be fetched from the file.
-        // "data" follows the same format as RecordBasedFileManager::insertRecord().
-        RC getNextRecord(RID &rid, void *data);
-        RC close();
-
-        FileHandle fileHandle;
-        vector<Attribute> recordDescriptor;
-        string conditionAttrName;
-        int conditionAttrIndex;
-        AttrType conditionAttrType;
-        vector<string> attributeNames;
-        vector<int> retrieveAttrIndex;
-        CompOp compOp;
-        RID tempRid;
-        const void* value;
-
-
-    };
+    class RBFM_ScanIterator;
 
     class RecordBasedFileManager {
     public:
@@ -166,7 +143,36 @@ namespace PeterDB {
         RecordBasedFileManager(const RecordBasedFileManager &);                     // Prevent construction by copying
         RecordBasedFileManager &operator=(const RecordBasedFileManager &);          // Prevent assignment
     };
+    class RBFM_ScanIterator {
+    public:
+        RBFM_ScanIterator()=default;
 
+        ~RBFM_ScanIterator()=default;
+
+        // Never keep the results in the memory. When getNextRecord() is called,
+        // a satisfying record needs to be fetched from the file.
+        // "data" follows the same format as RecordBasedFileManager::insertRecord().
+        RC getNextRecord(RID &rid, void *data);
+        RC close();
+        RC init(const std::vector<Attribute> &recordDescriptor,
+                  const std::string &conditionAttribute, const CompOp compOp, const void* value,
+                  const std::vector<std::string> &attributeNames, RecordBasedFileManager* rbfm);
+        FileHandle fileHandle;
+    private:
+        RecordBasedFileManager* rbfm;
+
+        vector<Attribute> recordDescriptor;
+        string conditionAttrName;
+        int conditionAttrIndex;
+        AttrType conditionAttrType;
+        vector<string> attributeNames;
+        vector<int> retrieveAttrIndex;
+        CompOp compOp;
+        RID tempRid;
+        const void* value;
+
+
+    };
 } // namespace PeterDB
 
 #endif // _rbfm_h_

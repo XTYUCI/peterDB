@@ -698,45 +698,49 @@ namespace PeterDB {
                                         const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                         const std::vector<std::string> &attributeNames,
                                         RBFM_ScanIterator &rbfm_ScanIterator) {
-                rbfm_ScanIterator.fileHandle=fileHandle;
-                rbfm_ScanIterator.recordDescriptor=recordDescriptor;
-                rbfm_ScanIterator.conditionAttrName=conditionAttribute;
-                rbfm_ScanIterator.compOp=compOp;
-                rbfm_ScanIterator.attributeNames=attributeNames;
-                rbfm_ScanIterator.tempRid.slotNum=1;
-                rbfm_ScanIterator.tempRid.pageNum=0;
-                rbfm_ScanIterator.value=value;
-
-                for(int i=0;i<recordDescriptor.size();i++)
-                {
-                    if(recordDescriptor.at(i).name==conditionAttribute)
-                    {
-                        rbfm_ScanIterator.conditionAttrType=recordDescriptor.at(i).type;
-                        rbfm_ScanIterator.conditionAttrIndex=i;
-                    }
-                }
-
-                for (int i=0;i<recordDescriptor.size();i++)
-                {
-                    for(int j=0;j<attributeNames.size();j++)
-                    {
-                        if(recordDescriptor.at(i).name==attributeNames[j])
-                        {
-                            rbfm_ScanIterator.retrieveAttrIndex.push_back(i);
-                            break;
-                        }
-                    }
-                }
-            if(rbfm_ScanIterator.retrieveAttrIndex.empty()){return -1;}
-
+            rbfm_ScanIterator.init(recordDescriptor,conditionAttribute,compOp,value,attributeNames, this);
             return 0;
         }
 
         // RBFM_ScanIterator FUNCTION***************
+        RC RBFM_ScanIterator::init(const std::vector<Attribute> &recordDescriptor,const std::string &conditionAttribute, const CompOp compOp, const void *value,
+                                   const std::vector<std::string> &attributeNames, RecordBasedFileManager *rbfm)
+       {
+           this->fileHandle=fileHandle;
+           this->recordDescriptor=recordDescriptor;
+           this->conditionAttrName=conditionAttribute;
+           this->compOp=compOp;
+           this->attributeNames=attributeNames;
+           this->tempRid.slotNum=1;
+           this->tempRid.pageNum=0;
+           this->value=value;
+           this->rbfm= rbfm;
 
-        RBFM_ScanIterator::RBFM_ScanIterator()=default;
+           for(int i=0;i<recordDescriptor.size();i++)
+           {
+               if(recordDescriptor.at(i).name==conditionAttribute)
+               {
+                   this->conditionAttrType=recordDescriptor.at(i).type;
+                   this->conditionAttrIndex=i;
+               }
+           }
 
-        RBFM_ScanIterator::~RBFM_ScanIterator()=default;
+           for (int i=0;i<recordDescriptor.size();i++)
+           {
+               for(int j=0;j<attributeNames.size();j++)
+               {
+                   if(recordDescriptor.at(i).name==attributeNames[j])
+                   {
+                       this->retrieveAttrIndex.push_back(i);
+                       break;
+                   }
+               }
+           }
+           if(this->retrieveAttrIndex.empty()){return -1;}
+
+           return 0;
+       }
+
 
         RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
         {
@@ -963,5 +967,5 @@ namespace PeterDB {
             return 0;
         }
 
-    } // namespace PeterDB
+} // namespace PeterDB
 

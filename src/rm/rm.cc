@@ -41,10 +41,13 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
+
         RC rc=rbfm->destroyFile("Tables");
         if(rc==-1){return -1;}
         rc=rbfm->destroyFile("Columns");
         if(rc==-1){return -1;}
+        remove("Tables");
+        remove("Columns");
         return 0;
     }
 
@@ -80,13 +83,13 @@ namespace PeterDB {
 
         RID rid;
         int deleteID= getTableId(tableName,rid); // get delete id
-        FileHandle fileHandle;
-        RC rc = rbfm ->openFile("Tables",fileHandle);  // delete record in Tables;
+        FileHandle tfileHandle;
+        RC rc = rbfm ->openFile("Tables",tfileHandle);  // delete record in Tables;
         if(rc==-1){return -1;}
         if(deleteID==-1){return -2;} // tablename not in tables
-        rc= rbfm->deleteRecord(fileHandle,tablesRecordDescriptor,rid);
+        rc= rbfm->deleteRecord(tfileHandle,tablesRecordDescriptor,rid);
         if(rc==-1){return -1;}
-        rbfm->closeFile(fileHandle);
+        rbfm->closeFile(tfileHandle);
 
         // delete record in Columns
         RM_ScanIterator rm_ScanIterator;
@@ -103,9 +106,10 @@ namespace PeterDB {
             if(rc==-1){return -1;}
         }
         rm_ScanIterator.close();
-        free(data);
+        free(data);;
 
         rc=rbfm->destroyFile(tableName);
+        remove(tableName.c_str());
         if(rc==-1){return -1;}
         return 0;
     }
@@ -144,6 +148,7 @@ namespace PeterDB {
             }
             free(data);
             rmScanIterator.close();
+
         }
         return 0;
     }
