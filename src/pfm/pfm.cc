@@ -63,6 +63,7 @@ namespace PeterDB {
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
         FILE *fp;
+
         fp= fopen(fileName.c_str(),"rb");
         if (!fp)
         {
@@ -90,8 +91,8 @@ namespace PeterDB {
     FileHandle::~FileHandle()
     {
         if(fileP)
-            fclose(fileP);
-        fileP = NULL;
+        {fclose(fileP);
+        fileP = NULL;}
     };
 
     RC FileHandle::readPage(PageNum pageNum, void *data) {
@@ -204,6 +205,7 @@ namespace PeterDB {
 
     RC FileHandle::closeFile()
     {
+
         if (!fileP)
         {
             return -1;

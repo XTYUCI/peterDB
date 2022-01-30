@@ -216,6 +216,8 @@ namespace PeterDB {
                     //********
                     fileHandle.writePage(i, tempPage2);       // write page to disk
                     isInsert = true;
+                    free(tempPage2);
+                    break;
                 }
                 free(tempPage2);
             }
@@ -345,20 +347,6 @@ namespace PeterDB {
             short recordSizeToDelete;
             memcpy(&recordSizeToDelete,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
 
-            if(recordOffsetToDelete<=-4)
-            {
-                short migratePageNum;
-                short migrateSlotNum;
-                memcpy(&migratePageNum,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
-                memcpy(&migrateSlotNum,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
-                RID migrateRID;
-                migrateRID.pageNum=(-1)*(migratePageNum+5);
-                migrateRID.slotNum=(-1)*(migrateSlotNum+5);
-
-                return deleteRecord(fileHandle,recordDescriptor,migrateRID);
-
-            }
-
             //delete and migrate ***
             int recordAfterSize=PAGE_SIZE-recordSizeToDelete-recordOffsetToDelete-freebytesBeforeDelete-4-slotNumBeforeDelete*4;
             memcpy( curPofPage+recordOffsetToDelete,curPofPage+recordOffsetToDelete+recordSizeToDelete,recordAfterSize); // delete and migrate
@@ -368,7 +356,7 @@ namespace PeterDB {
                 for (short i = rid.slotNum + 1; i <= slotNumBeforeDelete; i++) {
                     short recordOffsetAfter;
                     memcpy(&recordOffsetAfter,curPofPage + PAGE_SIZE - 4 - i*SLOT_SIZE,2);
-                    if(recordOffsetAfter!=-1)
+                    if(recordOffsetAfter>=0)
                     {
                         short recordOffsetAfterMigrate=recordOffsetAfter-recordSizeToDelete;
                         memcpy(curPofPage + PAGE_SIZE - 4 - i*SLOT_SIZE,&recordOffsetAfterMigrate,2);
@@ -514,7 +502,25 @@ namespace PeterDB {
             short recordSizeFormal;
             memcpy(&recordSizeFormal,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
             short recordOffsetFormal;
-            memcpy(&recordSizeFormal,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+            memcpy(&recordOffsetFormal,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+
+            if(recordOffsetFormal==-1)
+            {
+                return -1;
+            }
+            if(recordOffsetFormal<=-4)
+            {
+                short migratePageNum1;
+                short migrateSlotNum1;
+                memcpy(&migratePageNum1,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE,2);
+                memcpy(&migrateSlotNum1,curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,2);
+                RID migrateRID1;
+                migrateRID1.pageNum=(-1)*(migratePageNum1+5);
+                migrateRID1.slotNum=(-1)*(migrateSlotNum1+5);
+
+                return updateRecord(fileHandle,recordDescriptor,data,migrateRID1);
+            }
+
             short freeBytes;
             memcpy(&freeBytes,curPofPage+PAGE_SIZE-2,2);
             short slotNum;
@@ -556,7 +562,7 @@ namespace PeterDB {
                         for (short i = rid.slotNum + 1; i <= slotNum; i++) {
                             short recordOffsetAfter;
                             memcpy(&recordOffsetAfter, curPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, 2);
-                            if (recordOffsetAfter != -1) {
+                            if (recordOffsetAfter >=0) {
                                 short recordOffsetAfterMigrate = recordOffsetAfter - (recordSizeFormal - recordSize);
                                 memcpy(curPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, &recordOffsetAfterMigrate, 2);
                             }
@@ -578,7 +584,7 @@ namespace PeterDB {
                     {
                         memcpy(curPofPage + recordOffsetFormal+4+i*2,fieldOffsetArray+i*2 ,2);
                     }
-                    memcpy(curPofPage + recordOffsetFormal+4+fields*2, data, recordSize-4-2*fields);
+                    memcpy(curPofPage + recordOffsetFormal+4+fields*2, data, recordSize-4-2*fields);  // update data
                     memcpy(curPofPage+PAGE_SIZE-4-rid.slotNum*SLOT_SIZE+2,&recordSize,2); //reset record size
 
                     // reset offset of records after that
@@ -586,7 +592,7 @@ namespace PeterDB {
                         for (short i = rid.slotNum + 1; i <= slotNum; i++) {
                             short recordOffsetAfter;
                             memcpy(&recordOffsetAfter, curPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, 2);
-                            if (recordOffsetAfter != -1) {
+                            if (recordOffsetAfter >=0) {
                                 short recordOffsetAfterMigrate = recordOffsetAfter + (recordSize-recordSizeFormal);
                                 memcpy(curPofPage + PAGE_SIZE - 4 - i * SLOT_SIZE, &recordOffsetAfterMigrate, 2);
                             }
@@ -698,19 +704,19 @@ namespace PeterDB {
                                         const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                         const std::vector<std::string> &attributeNames,
                                         RBFM_ScanIterator &rbfm_ScanIterator) {
-            rbfm_ScanIterator.init(recordDescriptor,conditionAttribute,compOp,value,attributeNames, this);
+            rbfm_ScanIterator.init(fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames, this);
             return 0;
         }
 
         // RBFM_ScanIterator FUNCTION***************
-        RC RBFM_ScanIterator::init(const std::vector<Attribute> &recordDescriptor,const std::string &conditionAttribute, const CompOp compOp, const void *value,
+        RC RBFM_ScanIterator::init(FileHandle &fileHandle,const std::vector<Attribute> &recordDescriptor,const std::string &conditionAttribute, const CompOp compOp, const void *value,
                                    const std::vector<std::string> &attributeNames, RecordBasedFileManager *rbfm)
        {
-           this->fileHandle=fileHandle;
+            this->fileHandle=fileHandle;
            this->recordDescriptor=recordDescriptor;
            this->conditionAttrName=conditionAttribute;
-           this->compOp=compOp;
            this->attributeNames=attributeNames;
+           this->compOp=compOp;
            this->tempRid.slotNum=1;
            this->tempRid.pageNum=0;
            this->value=value;
@@ -725,9 +731,9 @@ namespace PeterDB {
                }
            }
 
-           for (int i=0;i<recordDescriptor.size();i++)
+           for(int j=0;j<attributeNames.size();j++)
            {
-               for(int j=0;j<attributeNames.size();j++)
+               for (int i=0;i<recordDescriptor.size();i++)
                {
                    if(recordDescriptor.at(i).name==attributeNames[j])
                    {
@@ -744,7 +750,6 @@ namespace PeterDB {
 
         RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
         {
-            RecordBasedFileManager &rbfm=RecordBasedFileManager::instance();
 
             int totalPageNums=fileHandle.getNumberOfPages();
 
@@ -762,16 +767,30 @@ namespace PeterDB {
                 memcpy(&totalSlotNum,curP+PAGE_SIZE-4,2);
                 if(tempRid.slotNum<=totalSlotNum)
                 {
+                    bool no_opCheck=false;
                     if(conditionAttrName=="" && compOp==NO_OP){
-                        rid.slotNum=tempRid.slotNum;
+                        /*rid.slotNum=tempRid.slotNum;
                         rid.pageNum=tempRid.pageNum;
                         tempRid.slotNum+=1;
-                        free(pageData);
-                        return 0;}
+                        free(pageData);*/
+                        no_opCheck= true;
+                    }
                     void * conditionAttrData= malloc(100);
-                    rc=rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,conditionAttrName,conditionAttrData);
+
+                    if(conditionAttrName!="") {
+                        rc=rbfm->readAttribute(fileHandle, recordDescriptor, tempRid, conditionAttrName,conditionAttrData);
+                    }
                     char * PofConAttrData=(char *) conditionAttrData;
-                    if(rc!=-1)  // cotain the contionAttr
+
+                    short recordOffset;
+                    memcpy(&recordOffset,curP+PAGE_SIZE-4-tempRid.slotNum*SLOT_SIZE,2);
+                    if(recordOffset<0)
+                    {
+                        rc=-1;
+                        no_opCheck= false;
+                    }
+
+                    if(rc!=-1||no_opCheck== true)  // cotain the contionAttr
                     {
                         bool isSatisfy=false;
                         //short nullCheck;
@@ -795,7 +814,7 @@ namespace PeterDB {
                                 isSatisfy= true;
                             }
                         }
-                        else
+                        else if(conditionAttrName!="")
                         { // not null
                             if(conditionAttrType==TypeInt)
                             {
@@ -887,7 +906,7 @@ namespace PeterDB {
                         if(isSatisfy== true) // if satisfy , retrieve the data
                         {
                             char * PofRetrieveRD=(char *) data;
-
+                            bool isRetrieved= true;
                             //genereate null indicator first
                             int fields=retrieveAttrIndex.size();
                             int nullBytesLen = ceil(fields / 8)+1;
@@ -897,17 +916,23 @@ namespace PeterDB {
                             for(int i=0;i<retrieveAttrIndex.size();i++)
                             {
                                 int index=retrieveAttrIndex[i];
-                                void * attributeData= malloc(50);
-                                rbfm.readAttribute(fileHandle,recordDescriptor,tempRid,recordDescriptor.at(index).name,attributeData);
+                                void * attributeData= malloc(200);
+                                RC rc=rbfm->readAttribute(fileHandle,recordDescriptor,tempRid,recordDescriptor.at(index).name,attributeData);
+                                if(rc==-1)
+                                {
+                                    isRetrieved = false;
+                                    free(attributeData);
+                                    break;
+                                }
                                 char * PofAttributeData=(char *)attributeData;
 
                                 //short nullCheck;
                                 //memcpy(&nullCheck,PofAttributeData,2);
                                 char * nullP2=( char *) malloc(1);
                                 memcpy(nullP2,PofAttributeData,1);
-                                bool isNull2;
-                                int bytePosition2 = 0 / 8;
-                                int bitPosition2 = 0 % 8;
+                                bool isNull2=false;
+                                int bytePosition2 = 0;
+                                int bitPosition2 = 0;
                                 char b2 = nullP2[bytePosition2];
                                 isNull2=  ((b2 >> (7 - bitPosition2)) & 0x1);
 
@@ -940,21 +965,26 @@ namespace PeterDB {
                                 free(attributeData);
                                 free(nullP2);
                             }
-                            memcpy(PofRetrieveRD,nullIndicator,nullBytesLen);
-                            free(nullIndicator);
-                            rid.slotNum=tempRid.slotNum;
-                            rid.pageNum=tempRid.pageNum;
-                            tempRid.slotNum+=1;
-                            free(conditionAttrData);
-                            free(pageData);
-                            return 0;
+                            if(isRetrieved){
+                                memcpy(PofRetrieveRD,nullIndicator,nullBytesLen);
+                                free(nullIndicator);
+                                rid.slotNum=tempRid.slotNum;
+                                rid.pageNum=tempRid.pageNum;
+                                tempRid.slotNum+=1;
+                                free(conditionAttrData);
+                                free(pageData);
+                                return 0;
+                            }
                         }// retrieve end
 
                     }// if not contain the attribute or not satisfy free the memory and continue the for loop
                     free(conditionAttrData);
                     tempRid.slotNum+=1;
                 }
-                if(tempRid.slotNum>totalSlotNum){tempRid.pageNum+=1;}
+                if(tempRid.slotNum>totalSlotNum){
+                    tempRid.pageNum+=1;
+                    tempRid.slotNum=1;
+                }
 
                 free(pageData);
             } // end

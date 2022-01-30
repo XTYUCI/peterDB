@@ -59,7 +59,6 @@ namespace PeterDB {
         if (tablesCatalogFile.is_open()) tablesCatalogFile.close();
         else return -1;
 
-        // Try open Columns at input mode. If unsuccessful, doesn't exist
         std::fstream columnsCatalogFile;
         columnsCatalogFile.open("Columns", std::ios::in | std::ios::binary);
         if (columnsCatalogFile.is_open()) columnsCatalogFile.close();
@@ -94,12 +93,12 @@ namespace PeterDB {
         // delete record in Columns
         RM_ScanIterator rm_ScanIterator;
         vector<string> attributeNames;
-        attributeNames.emplace_back("Attribute_name");
+        attributeNames.emplace_back("column-name");
         void * data= malloc(PAGE_SIZE);
 
         RID deletedColumnRid;
 
-        scan("Columns","Table_id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
+        scan("Columns","table-id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
         while(rm_ScanIterator.getNextTuple(deletedColumnRid,data)!=RM_EOF)
         {
             rc= rbfm->deleteRecord(rm_ScanIterator.rbfm_scanIterator.fileHandle,columnsRecordDescriptor,deletedColumnRid);
@@ -124,13 +123,13 @@ namespace PeterDB {
             int tableId= getTableId(tableName,rid);
             if (tableId==-1){return -2;}
             vector<string> attributeNames;
-            attributeNames.push_back("Attribute_name");
-            attributeNames.push_back("Type");
-            attributeNames.push_back("Length");
+            attributeNames.push_back("column-name");
+            attributeNames.push_back("column-type");
+            attributeNames.push_back("column-length");
 
 
             RM_ScanIterator rmScanIterator;
-            scan("Columns","Table_id",EQ_OP,&tableId,attributeNames,rmScanIterator);
+            scan("Columns","table-id",EQ_OP,&tableId,attributeNames,rmScanIterator);
             void * data= malloc(PAGE_SIZE);
             char * Pdata=(char *)data;
             while(rmScanIterator.getNextTuple(rid,data)!=RM_EOF)
@@ -237,12 +236,12 @@ namespace PeterDB {
                              const void *value,
                              const std::vector<std::string> &attributeNames,
                              RM_ScanIterator &rm_ScanIterator) {
-        vector<Attribute> recordDescriptor;
-        getAttributes(tableName,recordDescriptor);
 
         RC rc=rbfm->openFile(tableName,rm_ScanIterator.rbfm_scanIterator.fileHandle);
         if(rc==-1){return -1;}
 
+        vector<Attribute> recordDescriptor;
+        getAttributes(tableName,recordDescriptor);
         rbfm->scan(rm_ScanIterator.rbfm_scanIterator.fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames,rm_ScanIterator.rbfm_scanIterator);
 
         return 0;
@@ -261,10 +260,9 @@ namespace PeterDB {
     }
 
     RC RM_ScanIterator::close() {
-        RC rc=rbfm_scanIterator.close();
-        if(rc==-1){return -1;}
-        rc=rbfm_scanIterator.fileHandle.closeFile();
-        if(rc==-1){return -1;}
+        rbfm_scanIterator.close();
+
+        rbfm_scanIterator.fileHandle.closeFile();
         return 0; }
 
 
@@ -285,9 +283,10 @@ namespace PeterDB {
     int RelationManager::getTablesMaxIndex()  // get max index of Tables table
      {
         vector<string> attributeNames;
-        attributeNames.emplace_back("Id");
+        attributeNames.emplace_back("table-id");
 
         RM_ScanIterator rm_scanIterator;
+
         scan("Tables","",NO_OP, nullptr,attributeNames,rm_scanIterator);
         int maxId=0;
         RID scanRid;
@@ -305,7 +304,7 @@ namespace PeterDB {
     {
         int tableId=-1;
         vector<string> attributeNames;
-        attributeNames.emplace_back("Id");
+        attributeNames.emplace_back("table-id");
 
         int nameLength=tableName.length();
         void * value= malloc(4+nameLength);
@@ -313,7 +312,7 @@ namespace PeterDB {
         memcpy(PofValue,&nameLength,4);
         memcpy(PofValue+4,tableName.c_str(),nameLength);
         RM_ScanIterator rm_ScanIterator;
-        RC rc=scan("Tables","Name",EQ_OP,value,attributeNames,rm_ScanIterator);
+        RC rc=scan("Tables","table-name",EQ_OP,value,attributeNames,rm_ScanIterator);
         if(rc==-1){return -1;}
         void * data= malloc(5);
         char * PofData=(char *) data;
@@ -364,7 +363,7 @@ namespace PeterDB {
         if(rc==-1){return -1;}
         void * data=malloc(500);
         char * PofData=(char *) data;
-        int position=0;
+        int position=1;
         char nullindicator=0;
 
         for (Attribute attr:recordDescriptor)
@@ -395,15 +394,15 @@ namespace PeterDB {
     {
         //generate recordDescriptor for tables
         Attribute attr;
-        attr.name="Id";
+        attr.name="table-id";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         tablesRecordDescriptor.push_back(attr);
-        attr.name="Name";
+        attr.name="table-name";
         attr.type=TypeVarChar;
         attr.length=(AttrLength)VARCHAR_LENGTH;
         tablesRecordDescriptor.push_back(attr);
-        attr.name="Filename";
+        attr.name="file-name";
         attr.type=TypeVarChar;
         attr.length=(AttrLength)VARCHAR_LENGTH;
         tablesRecordDescriptor.push_back(attr);
@@ -413,23 +412,23 @@ namespace PeterDB {
     RC RelationManager::initializeColumnsDescriptor()
     {
         Attribute attr;
-        attr.name="Table_id";
+        attr.name="table-id";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         columnsRecordDescriptor.push_back(attr);
-        attr.name="Attribute_name";
+        attr.name="column-name";
         attr.type=TypeVarChar;
         attr.length=(AttrLength)VARCHAR_LENGTH;
         columnsRecordDescriptor.push_back(attr);
-        attr.name="Type";
+        attr.name="column-type";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         columnsRecordDescriptor.push_back(attr);
-        attr.name="Length";
+        attr.name="column-length";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         columnsRecordDescriptor.push_back(attr);
-        attr.name="Position";
+        attr.name="column-position";
         attr.type=TypeInt;
         attr.length=(AttrLength)4;
         columnsRecordDescriptor.push_back(attr);

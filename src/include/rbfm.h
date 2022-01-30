@@ -154,7 +154,7 @@ namespace PeterDB {
         // "data" follows the same format as RecordBasedFileManager::insertRecord().
         RC getNextRecord(RID &rid, void *data);
         RC close();
-        RC init(const std::vector<Attribute> &recordDescriptor,
+        RC init(FileHandle &fileHandle,const std::vector<Attribute> &recordDescriptor,
                   const std::string &conditionAttribute, const CompOp compOp, const void* value,
                   const std::vector<std::string> &attributeNames, RecordBasedFileManager* rbfm);
         FileHandle fileHandle;
