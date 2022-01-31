@@ -27,7 +27,7 @@ namespace PeterDB {
         if(rc==-1){return -1;}
         rc=rbfm->createFile("Columns");
         if(rc==-1){return -1;}
-
+        // initialize the Tables and Columns
         rc = insertRecordToTables(1,"Tables","Tables");
         if(rc==-1){return -1;}
         rc= insertRecordToTables(2,"Columns","Columns");
@@ -41,7 +41,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteCatalog() {
-
+        // destroy Tables and Columns file
         RC rc=rbfm->destroyFile("Tables");
         if(rc==-1){return -1;}
         rc=rbfm->destroyFile("Columns");
@@ -67,13 +67,13 @@ namespace PeterDB {
         }else {return -1;}
 
         int maxTablesIndex=getTablesMaxIndex();
-
+        // insert record info in Tables and Cloumns table
         RC rc= insertRecordToTables(maxTablesIndex+1,tableName,tableName);
         if(rc==-1){return -1;}
 
         rc= insertRecordToColumns(maxTablesIndex+1,attrs);
         if(rc==-1){return -1;}
-
+        // create the file with given table name
         rc= rbfm->createFile(tableName);
         if(rc==-1){return -1;}
         return 0;
@@ -88,6 +88,7 @@ namespace PeterDB {
         RC rc = rbfm ->openFile("Tables",tfileHandle);  // delete record in Tables;
         if(rc==-1){return -1;}
         if(deleteID==-1){return -2;} // tablename not in tables
+        // Scan the Tables Table and delete corresponding table-id record
         rc= rbfm->deleteRecord(tfileHandle,tablesRecordDescriptor,rid);
         if(rc==-1){return -1;}
         rbfm->closeFile(tfileHandle);
@@ -99,7 +100,7 @@ namespace PeterDB {
         void * data= malloc(PAGE_SIZE);
 
         RID deletedColumnRid;
-
+        // Scan the Cloumns Table and delete corresponding table-id record
         scan("Columns","table-id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
         while(rm_ScanIterator.getNextTuple(deletedColumnRid,data)!=RM_EOF)
         {
@@ -136,7 +137,7 @@ namespace PeterDB {
             char * Pdata=(char *)data;
             while(rmScanIterator.getNextTuple(rid,data)!=RM_EOF)
             {
-                Attribute attribute;
+                Attribute attribute;                                //scan the Columns, if the table-id meet, push the retrieved attribute inFo into the attr
                 int varcharLength;
                 memcpy(&varcharLength,Pdata+1,4);
                 char *name = (char *) malloc(varcharLength);
@@ -225,7 +226,7 @@ namespace PeterDB {
 
         vector<Attribute> recordDescriptor;
         getAttributes(tableName,recordDescriptor);
-        rc=rbfm->readAttribute(fileHandle,recordDescriptor,rid,attributeName,data);
+        rc=rbfm->readAttribute(fileHandle,recordDescriptor,rid,attributeName,data);   // for debug
         if(rc==-1){return -1;}
         rc=rbfm->closeFile(fileHandle);
         if(rc==-1){return -1;}
@@ -243,7 +244,7 @@ namespace PeterDB {
         if(rc==-1){return -1;}
 
         vector<Attribute> recordDescriptor;
-        getAttributes(tableName,recordDescriptor);
+        getAttributes(tableName,recordDescriptor);  // get attribute if the scanning table
         rbfm->scan(rm_ScanIterator.rbfm_scanIterator.fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames,rm_ScanIterator.rbfm_scanIterator);
 
         return 0;
@@ -290,7 +291,7 @@ namespace PeterDB {
         RM_ScanIterator rm_scanIterator;
 
         scan("Tables","",NO_OP, nullptr,attributeNames,rm_scanIterator);
-        int maxId=0;
+        int maxId=0;                      // Scan the Tables and get the total Id
         RID scanRid;
         void * idData= malloc(5); // nullcheck + int size
         while (rm_scanIterator.getNextTuple(scanRid,idData)!=RM_EOF)
@@ -304,6 +305,7 @@ namespace PeterDB {
 
     int RelationManager::getTableId(const string &tableName, RID &rid)
     {
+        // get the table-id of corresponding tableName
         int tableId=-1;
         vector<string> attributeNames;
         attributeNames.emplace_back("table-id");
@@ -315,12 +317,12 @@ namespace PeterDB {
         memcpy(PofValue+4,tableName.c_str(),nameLength);
         RM_ScanIterator rm_ScanIterator;
         RC rc=scan("Tables","table-name",EQ_OP,value,attributeNames,rm_ScanIterator);
-        if(rc==-1){return -1;}
+        if(rc==-1){return -1;}                       // Scan the Tables table
         void * data= malloc(5);
         char * PofData=(char *) data;
         if(rm_ScanIterator.getNextTuple(rid,data)!=RM_EOF)
         {
-            memcpy(&tableId,PofData+1,4);
+            memcpy(&tableId,PofData+1,4);           // if found, set the tableId
         }
         rm_ScanIterator.close();
         free(data);
@@ -337,7 +339,7 @@ namespace PeterDB {
         char * PofData=(char *) data;
         int dataSize=0;
         char nullIndicator=0;
-        memcpy(PofData,&nullIndicator,1);
+        memcpy(PofData,&nullIndicator,1);    // generate the Tables record
         memcpy(PofData+1,&ID,4);
         dataSize+=5;
         int varcharLength;
@@ -349,7 +351,7 @@ namespace PeterDB {
         varcharLength=fileName.length();
         memcpy(PofData+dataSize,&varcharLength,4);
         memcpy(PofData+dataSize+4,fileName.c_str(),varcharLength);
-
+        // insert the record into the Tables table
         RID rid;
         rc=rbfm->insertRecord(fileHandle,tablesRecordDescriptor,data,rid);
         if(rc==-1){return -1;}
@@ -368,14 +370,14 @@ namespace PeterDB {
         int position=1;
         char nullindicator=0;
 
-        for (Attribute attr:recordDescriptor)
+        for (Attribute attr:recordDescriptor)   // loop all the attribute and insert the record to Cloumns table
         {
             int recordSize=0;
             memcpy(PofData,&nullindicator,1);
             memcpy(PofData+1,&table_id,4);
             recordSize+=5;
             int varcharLength;
-            varcharLength=attr.name.length();
+            varcharLength=attr.name.length();             // generate the Columns record
             memcpy(PofData+recordSize,&varcharLength,4);
             memcpy(PofData+9,attr.name.c_str(),varcharLength);
             recordSize=recordSize+4+varcharLength;
@@ -394,7 +396,7 @@ namespace PeterDB {
 
     RC RelationManager::initializeTablesDescriptor()
     {
-        //generate recordDescriptor for tables
+        //generate recordDescriptor for Tables table
         Attribute attr;
         attr.name="table-id";
         attr.type=TypeInt;
@@ -413,6 +415,7 @@ namespace PeterDB {
 
     RC RelationManager::initializeColumnsDescriptor()
     {
+        //generate recordDescriptor for Columns table
         Attribute attr;
         attr.name="table-id";
         attr.type=TypeInt;
