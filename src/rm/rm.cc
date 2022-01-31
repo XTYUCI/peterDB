@@ -53,16 +53,18 @@ namespace PeterDB {
 
     RC RelationManager::createTable(const std::string &tableName, const std::vector<Attribute> &attrs) {
         if(tableName=="Tables"||tableName=="Columns"){return -1;}
+        // test if the catalog exist
+        FILE *fp= fopen("Tables","rb");
+        if (fp)
+        {
+            fclose(fp);
+        }else {return -1;}
 
-        std::fstream tablesCatalogFile;
-        tablesCatalogFile.open("Tables", std::ios::in | std::ios::binary);
-        if (tablesCatalogFile.is_open()) tablesCatalogFile.close();
-        else return -1;
-
-        std::fstream columnsCatalogFile;
-        columnsCatalogFile.open("Columns", std::ios::in | std::ios::binary);
-        if (columnsCatalogFile.is_open()) columnsCatalogFile.close();
-        else return -1;
+        FILE *fp2= fopen("Columns","rb");
+        if (fp2)
+        {
+            fclose(fp2);
+        }else {return -1;}
 
         int maxTablesIndex=getTablesMaxIndex();
 
@@ -126,7 +128,7 @@ namespace PeterDB {
             attributeNames.push_back("column-name");
             attributeNames.push_back("column-type");
             attributeNames.push_back("column-length");
-
+            //generate attributeNames
 
             RM_ScanIterator rmScanIterator;
             scan("Columns","table-id",EQ_OP,&tableId,attributeNames,rmScanIterator);
