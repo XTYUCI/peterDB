@@ -23,6 +23,7 @@ namespace PeterDB {
     RelationManager &RelationManager::operator=(const RelationManager &) = default;
 
     RC RelationManager::createCatalog() {
+
         RC rc=rbfm->createFile("Tables");
         if(rc==-1){return -1;}
         rc=rbfm->createFile("Columns");
@@ -264,13 +265,8 @@ namespace PeterDB {
 
     RC RM_ScanIterator::close() {
         rbfm_scanIterator.close();
-
         rbfm_scanIterator.fileHandle.closeFile();
         return 0; }
-
-
-
-
 
     // Extra credit work
     RC RelationManager::dropAttribute(const std::string &tableName, const std::string &attributeName) {

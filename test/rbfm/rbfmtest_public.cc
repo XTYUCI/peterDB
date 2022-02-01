@@ -105,7 +105,7 @@ namespace PeterDBTesting {
 
 
     }
-/**
+
     TEST_F(RBFM_Test, insert_and_read_multiple_records) {
         // Functions tested
         // 1. Create Record-Based File
@@ -245,7 +245,7 @@ namespace PeterDBTesting {
             ASSERT_EQ(memcmp(outBuffer, inBuffer, sizes[i]),
                       0) << "the read data should match the inserted data";
         }
-    }**/
+    }
 
     TEST_F(RBFM_Test, delete_records) {
         // Functions tested
