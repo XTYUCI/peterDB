@@ -84,12 +84,14 @@ namespace PeterDB {
         if(tableName=="Tables"||tableName=="Columns"){return -1;}
 
         RID rid;
+        //delete record in Tables
         int deleteID= getTableId(tableName,rid); // get delete id
         FileHandle tfileHandle;
         RC rc = rbfm ->openFile("Tables",tfileHandle);  // delete record in Tables;
         if(rc==-1){return -1;}
         if(deleteID==-1){return -2;} // tablename not in tables
         // Scan the Tables Table and delete corresponding table-id record
+//        scan("Tables","table-id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
         rc= rbfm->deleteRecord(tfileHandle,tablesRecordDescriptor,rid);
         if(rc==-1){return -1;}
         rbfm->closeFile(tfileHandle);
@@ -98,11 +100,13 @@ namespace PeterDB {
         RM_ScanIterator rm_ScanIterator;
         vector<string> attributeNames;
         attributeNames.emplace_back("column-name");
+        string condAttr = "table-id";
+        CompOp compOp = EQ_OP;
         void * data= malloc(PAGE_SIZE);
 
         RID deletedColumnRid;
         // Scan the Cloumns Table and delete corresponding table-id record
-        scan("Columns","table-id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
+        scan("Columns",condAttr,compOp,&deleteID,attributeNames,rm_ScanIterator);
         while(rm_ScanIterator.getNextTuple(deletedColumnRid,data)!=RM_EOF)
         {
             rc= rbfm->deleteRecord(rm_ScanIterator.rbfm_scanIterator.fileHandle,columnsRecordDescriptor,deletedColumnRid);
@@ -131,9 +135,10 @@ namespace PeterDB {
             attributeNames.push_back("column-type");
             attributeNames.push_back("column-length");
             //generate attributeNames
-
+            string condAttr = "table-id";
+            CompOp compOp = EQ_OP;
             RM_ScanIterator rmScanIterator;
-            scan("Columns","table-id",EQ_OP,&tableId,attributeNames,rmScanIterator);
+            scan("Columns",condAttr,compOp,&tableId,attributeNames,rmScanIterator);
             void * data= malloc(PAGE_SIZE);
             char * Pdata=(char *)data;
             while(rmScanIterator.getNextTuple(rid,data)!=RM_EOF)
@@ -283,10 +288,10 @@ namespace PeterDB {
      {
         vector<string> attributeNames;
         attributeNames.emplace_back("table-id");
-
+         string condAttr = "";
+         CompOp compOp = NO_OP;
         RM_ScanIterator rm_scanIterator;
-
-        scan("Tables","",NO_OP, nullptr,attributeNames,rm_scanIterator);
+        scan("Tables",condAttr,compOp, nullptr,attributeNames,rm_scanIterator);
         int maxId=0;                      // Scan the Tables and get the total Id
         RID scanRid;
         void * idData= malloc(5); // nullcheck + int size
@@ -305,14 +310,15 @@ namespace PeterDB {
         int tableId=-1;
         vector<string> attributeNames;
         attributeNames.emplace_back("table-id");
-
+        string condAttr = "table-name";
+        CompOp compOp = EQ_OP;
         int nameLength=tableName.length();
         void * value= malloc(4+nameLength);
         char * PofValue=(char *) value;
         memcpy(PofValue,&nameLength,4);
         memcpy(PofValue+4,tableName.c_str(),nameLength);
         RM_ScanIterator rm_ScanIterator;
-        RC rc=scan("Tables","table-name",EQ_OP,value,attributeNames,rm_ScanIterator);
+        RC rc=scan("Tables",condAttr,compOp,value,attributeNames,rm_ScanIterator);
         if(rc==-1){return -1;}                       // Scan the Tables table
         void * data= malloc(5);
         char * PofData=(char *) data;
@@ -335,7 +341,7 @@ namespace PeterDB {
         char * PofData=(char *) data;
         int dataSize=0;
         char nullIndicator=0;
-        memcpy(PofData,&nullIndicator,1);    // generate the Tables record
+        memcpy(PofData,&nullIndicator,1);    // prepare the Tables record
         memcpy(PofData+1,&ID,4);
         dataSize+=5;
         int varcharLength;
@@ -366,14 +372,16 @@ namespace PeterDB {
         int position=1;
         char nullindicator=0;
 
-        for (Attribute attr:recordDescriptor)   // loop all the attribute and insert the record to Cloumns table
+        for (int i = 0; i < recordDescriptor.size(); i++)   // loop all the attribute and insert the record to Cloumns table
         {
+            Attribute attr = recordDescriptor[i];
+            // prepare  the Columns record
             int recordSize=0;
             memcpy(PofData,&nullindicator,1);
             memcpy(PofData+1,&table_id,4);
             recordSize+=5;
             int varcharLength;
-            varcharLength=attr.name.length();             // generate the Columns record
+            varcharLength=attr.name.length();             // prepare  the Columns record
             memcpy(PofData+recordSize,&varcharLength,4);
             memcpy(PofData+9,attr.name.c_str(),varcharLength);
             recordSize=recordSize+4+varcharLength;
