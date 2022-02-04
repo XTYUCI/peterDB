@@ -86,15 +86,9 @@ namespace PeterDB {
         RID rid;
         //delete record in Tables
         int deleteID= getTableId(tableName,rid); // get delete id
-        FileHandle tfileHandle;
-        RC rc = rbfm ->openFile("Tables",tfileHandle);  // delete record in Tables;
-        if(rc==-1){return -1;}
         if(deleteID==-1){return -2;} // tablename not in tables
-        // Scan the Tables Table and delete corresponding table-id record
-//        scan("Tables","table-id",EQ_OP,&deleteID,attributeNames,rm_ScanIterator);
-        rc= rbfm->deleteRecord(tfileHandle,tablesRecordDescriptor,rid);
+        RC rc= deleteTuple("Tables",rid);
         if(rc==-1){return -1;}
-        rbfm->closeFile(tfileHandle);
 
         // delete record in Columns
         RM_ScanIterator rm_ScanIterator;
@@ -109,7 +103,7 @@ namespace PeterDB {
         scan("Columns",condAttr,compOp,&deleteID,attributeNames,rm_ScanIterator);
         while(rm_ScanIterator.getNextTuple(deletedColumnRid,data)!=RM_EOF)
         {
-            rc= rbfm->deleteRecord(rm_ScanIterator.rbfm_scanIterator.fileHandle,columnsRecordDescriptor,deletedColumnRid);
+            rc = deleteTuple("Columns",deletedColumnRid);
             if(rc==-1){return -1;}
         }
         rm_ScanIterator.close();
@@ -334,14 +328,11 @@ namespace PeterDB {
 
     RC RelationManager::insertRecordToTables(int ID, const string &tableName, const string &fileName)
     {
-        FileHandle fileHandle;
-        RC rc= rbfm->openFile("Tables",fileHandle);
-        if(rc==-1){return -1;}
         void * data= malloc(1024);
         char * PofData=(char *) data;
         int dataSize=0;
         char nullIndicator=0;
-        memcpy(PofData,&nullIndicator,1);    // prepare the Tables record
+        memcpy(PofData,&nullIndicator,1);    // prepare the Tables record DATA
         memcpy(PofData+1,&ID,4);
         dataSize+=5;
         int varcharLength;
@@ -355,18 +346,14 @@ namespace PeterDB {
         memcpy(PofData+dataSize+4,fileName.c_str(),varcharLength);
         // insert the record into the Tables table
         RID rid;
-        rc=rbfm->insertRecord(fileHandle,tablesRecordDescriptor,data,rid);
+        RC rc= insertTuple("Tables",data,rid);
         if(rc==-1){return -1;}
         free(data);
-        rbfm->closeFile(fileHandle);
         return 0;
     }
 
     RC RelationManager::insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor)
     {
-        FileHandle fileHandle;
-        RC rc= rbfm->openFile("Columns",fileHandle);
-        if(rc==-1){return -1;}
         void * data=malloc(500);
         char * PofData=(char *) data;
         int position=1;
@@ -391,9 +378,9 @@ namespace PeterDB {
             recordSize+=12;
             position+=1;
             RID rid;
-            rbfm->insertRecord(fileHandle,columnsRecordDescriptor,data,rid);
+            RC rc =insertTuple("Columns",data,rid);
+            if(rc==-1){return -1;}
         }
-        rbfm->closeFile(fileHandle);
         free(data);
         return 0;
     }
