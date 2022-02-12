@@ -1,7 +1,6 @@
 #include "test/utils/rm_test_util.h"
 
 namespace PeterDBTesting {
-
     TEST_F(RM_Catalog_Test, create_and_delete_tables) {
 
         // Try to delete the System Catalog.
@@ -22,7 +21,7 @@ namespace PeterDBTesting {
         // Create Catalog
         ASSERT_EQ(rm.createCatalog(), success) << "Creating the Catalog should succeed.";
 
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < 5; i++) {
             tableName = "rm_test_table_" + std::to_string(i);
 
             table_attrs = parseDDL(
@@ -37,7 +36,7 @@ namespace PeterDBTesting {
 
         }
 
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < 5; i++) {
             tableName = "rm_test_table_" + std::to_string(i);
             // Delete the table
             ASSERT_EQ(rm.deleteTable(tableName), success) << "Delete table " << tableName << " should succeed.";
@@ -407,7 +406,6 @@ namespace PeterDBTesting {
 
     }
 
-
     TEST_F(RM_Large_Table_Test, insert_large_tuples) {
         // Functions Tested for large tables:
         // 1. getAttributes
@@ -489,8 +487,6 @@ namespace PeterDBTesting {
         }
 
     }
-
-
 
     TEST_F(RM_Large_Table_Test, update_and_read_large_tuples) {
         // This test is expected to be run after RM_Large_Table_Test::insert_large_tuples
@@ -622,7 +618,6 @@ namespace PeterDBTesting {
 
     }
 
-
     TEST_F(RM_Large_Table_Test, scan_large_tuples) {
 
         // Functions Tested for large tables
@@ -641,7 +636,6 @@ namespace PeterDBTesting {
         outBuffer = malloc(bufSize);
 
         size_t nullAttributesIndicatorActualSize = getActualByteForNullsIndicator(attrs.size());
-
 
         while (rmsi.getNextTuple(rid, outBuffer) != RM_EOF) {
 
@@ -668,7 +662,6 @@ namespace PeterDBTesting {
             unsigned attr25 = *(unsigned *) ((uint8_t *) outBuffer + offset + nullAttributesIndicatorActualSize);
 
             ASSERT_EQ(attr29, attr25 + 1);
-
             free(attr15);
             count++;
             memset(outBuffer, 0, bufSize);
@@ -808,7 +801,6 @@ namespace PeterDBTesting {
 
     }
 
-
     TEST_F(RM_Catalog_Scan_Test, catalog_tables_table_check) {
         // Functions Tested:
         // 1. System Catalog Implementation - Tables table
@@ -935,6 +927,7 @@ namespace PeterDBTesting {
                   success && "RelationManager::deleteTable() on the system catalog table should not succeed.");
 
     }
+
     TEST_F(RM_Version_Test, read_after_drop_attribute) {
         // Extra Credit Test Case - Functions Tested:
         // 1. Insert tuple
