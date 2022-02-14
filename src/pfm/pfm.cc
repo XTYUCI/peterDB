@@ -62,8 +62,12 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
+        FILE * FP=fileHandle.getFileP();
+        if(FP!= nullptr)
+        {
+            return -1;
+        }
         FILE *fp;
-
         fp= fopen(fileName.c_str(),"rb");
         if (!fp)
         {
@@ -174,6 +178,37 @@ namespace PeterDB {
         free(newPage);
     }
 
+    void FileHandle::initializeIndexInteriorPage(PageNum pageNum)
+    {
+        void * newIndexInteriorPage= malloc(PAGE_SIZE);
+        short slotNum=0;
+        short freeBytes=4090;
+        short leafNodeChecker=0; // 0 means it is an unleafNode page
+
+        char * cur=(char *)newIndexInteriorPage;
+        memcpy(cur+PAGE_SIZE-2,&freeBytes,2);   // initialize a page with F and N
+        memcpy(cur+PAGE_SIZE-4,&slotNum,2);
+        memcpy(cur+PAGE_SIZE-6,&leafNodeChecker,2);
+
+        writePage(pageNum,newIndexInteriorPage);
+        free(newIndexInteriorPage);
+    }
+
+    void FileHandle::initializeIndexLeafNodePage(PageNum pageNum)
+    {
+        void * newIndexLeafNodePage= malloc(PAGE_SIZE);
+        short slotNum=0;
+        short freeBytes=4086;
+        short leafNodeChecker=1; // 0 means it is an unleafNode page
+        int nextLeafPagePageNum=-1; // -1 means currently no other leaf page PageNum
+        char * cur=(char *)newIndexLeafNodePage;
+        memcpy(cur+PAGE_SIZE-2,&freeBytes,2);   // initialize a page with F and N
+        memcpy(cur+PAGE_SIZE-4,&slotNum,2);
+        memcpy(cur+PAGE_SIZE-6,&leafNodeChecker,2);
+        memcpy(cur+PAGE_SIZE-10,&nextLeafPagePageNum,4);
+        writePage(pageNum,newIndexLeafNodePage);
+        free(newIndexLeafNodePage);
+    }
 
     void FileHandle::updateHiddenPage()
     {
@@ -203,6 +238,8 @@ namespace PeterDB {
         free(P);
     }
 
+
+
     RC FileHandle::closeFile()
     {
 
@@ -219,5 +256,10 @@ namespace PeterDB {
     {
         fileP=_fileP;
         return 0;
+    }
+
+    FILE * FileHandle::getFileP()
+    {
+        return fileP;
     }
 } // namespace PeterDB

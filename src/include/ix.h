@@ -10,6 +10,8 @@
 # define IX_EOF (-1)  // end of the index scan
 
 namespace PeterDB {
+
+
     class IX_ScanIterator;
 
     class IXFileHandle;
@@ -48,9 +50,24 @@ namespace PeterDB {
 
         // Print the B+ tree in pre-order (in a JSON record format)
         RC printBTree(IXFileHandle &ixFileHandle, const Attribute &attribute, std::ostream &out) const;
+        PagedFileManager* pfm;
+
+        RC appendRootPage(IXFileHandle &ixFileHandle);
+        RC appendInteriorPage(IXFileHandle &ixFileHandle,PageNum pageNum);
+        RC insertEntryToInteriorPage(IXFileHandle &ixFileHandle,PageNum pageNum,PageNum InteriorPageNum,const Attribute &attribute,const void *key,short keySize,PageNum Lpointer,PageNum Rpointer);
+        RC appendLeafPage(IXFileHandle &ixFileHandle,PageNum pageNum);
+        RC insertEntryToLeafPage(IXFileHandle &ixFileHandle,PageNum pageNum,PageNum InteriorPageNum,const Attribute &attribute,const void *key,short keySize,const RID &rid);
+        RC splitLeafPage(IXFileHandle &ixFileHandle,PageNum originalPageNum, PageNum splitPageNum,const Attribute &attribute,const void * interiorKey,const void * halfPageData,short dataNums,short keySize, PageNum interiorPageNum, PageNum leftPointer,PageNum rightPointer,int splitFlag);
+        RC writeSplitLeafPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
+        RC splitInteriorPage(IXFileHandle &ixFileHandle,PageNum originalPageNum, PageNum splitPageNum,const Attribute &attribute,const void * interiorKey,const void * halfPageData,short dataNums,short keySize, PageNum interiorPageNum, PageNum leftPointer,PageNum rightPointer,int splitFlag);
+        RC writeSplitInteriorPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
+        RC resetRootPointer(IXFileHandle &ixFileHandle,PageNum rootPointerPageNum);
+
+        vector<int> BtreeSearchArray;
+        int searchIndex;
 
     protected:
-        IndexManager() = default;                                                   // Prevent construction
+        IndexManager() = default;                                                // Prevent construction
         ~IndexManager() = default;                                                  // Prevent unwanted destruction
         IndexManager(const IndexManager &) = default;                               // Prevent construction by copying
         IndexManager &operator=(const IndexManager &) = default;                    // Prevent assignment
@@ -75,7 +92,7 @@ namespace PeterDB {
 
     class IXFileHandle {
     public:
-
+        static IXFileHandle &instance();
         // variables to keep counter for each operation
         unsigned ixReadPageCounter;
         unsigned ixWritePageCounter;
@@ -90,6 +107,7 @@ namespace PeterDB {
         // Put the current counter values of associated PF FileHandles into variables
         RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);
 
+        FileHandle fileHandle;
     };
 }// namespace PeterDB
 #endif // _ix_h_
