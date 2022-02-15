@@ -66,6 +66,7 @@ namespace PeterDB {
         vector<int> BtreeSearchArray;
         int searchIndex;
 
+
     protected:
         IndexManager() = default;                                                // Prevent construction
         ~IndexManager() = default;                                                  // Prevent unwanted destruction

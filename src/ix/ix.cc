@@ -39,6 +39,21 @@ namespace PeterDB {
             keySize += varCharLength;
         }
 
+        int keyIValue=0;
+        float keyFValue=0.0;
+        string keySValue;
+        if(attribute.type==TypeInt)
+        {
+            memcpy(&keyIValue,(char *)key,4);
+        }else if (attribute.type==TypeReal)
+        {
+            memcpy(&keyFValue,(char *)key,4);
+        }
+        else
+        {
+            keySValue=string((char *)key+4,keySize-4);
+        }
+
         int totalPageNums=ixFileHandle.fileHandle.getNumberOfPages();
         if(totalPageNums==0) // index file is empty, add the root Page and leaf page
         {
@@ -72,15 +87,104 @@ namespace PeterDB {
 
             short leafNodeChecker=0;
             int nextPageNum=rootPage;
-            while(leafNodeChecker!=1) {
+
+            while(leafNodeChecker!=1) { // loop until reach the leaf page
                 void *readPage = malloc(PAGE_SIZE);
                 ixFileHandle.fileHandle.readPage(nextPageNum, readPage);
                 curP = (char *) readPage;
                 memcpy(&leafNodeChecker, curP + PAGE_SIZE - 6, 2);
+                if(leafNodeChecker!=1){BtreeSearchArray.push_back(nextPageNum);}
+                else{break;}
+                short freeBytes;
+                short slotNum;
+                memcpy(&freeBytes,curP+PAGE_SIZE-2,2);
+                memcpy(&slotNum,curP+PAGE_SIZE-4,2);
+                short dataSize = keySize + 4;
+                short insertIndex;
+                int tempPage=0;
+                if (attribute.type == TypeVarChar) {
+                    bool find = false;
+                    string compareLast = string(curP + 4 + (slotNum - 1) * dataSize + 4, keySize - 4);
+                    if (keySValue > compareLast) {
+                        insertIndex = slotNum;
+                        find = true;
+                    }
+                    short left = 0;
+                    short right = slotNum - 1;
+                    if (find == false) {
+                        while (left < right) {
+                            short mid = left + (right - left) / 2;
+                            string compareMid = string(curP + 4 + mid * dataSize + 4, keySize - 4);
+                            if (keySValue > compareMid) {
+                                left = mid + 1;
+                            } else {
+                                right = mid;
+                            }
+                        }
+                        insertIndex = left;
+                    }
+                } else if (attribute.type == TypeInt) {
+                    bool find = false;
+                    int compareLast;
+                    memcpy(&compareLast, curP + 4 + (slotNum - 1) * dataSize, 4);
+                    if (keyIValue > compareLast) {
+                        insertIndex = slotNum;
+                        find = true;
+                    }
+                    short left = 0;
+                    short right = slotNum - 1;
+                    if (find == false) {
+                        while (left < right) {
+                            short mid = left + (right - left) / 2;
+                            int compareMid;
+                            memcpy(&compareMid, curP + 4 + mid * dataSize, 4);
+                            if (keyIValue > compareMid) {
+                                left = mid + 1;
+                            } else {
+                                right = mid;
+                            }
+                        }
+                        insertIndex = left;
+                    }
 
+                } else {
+                    bool find = false;
+                    float compareLast;
+                    memcpy(&compareLast, curP + 4 + (slotNum - 1) * dataSize, 4);
+                    if (keyFValue > compareLast) {
+                        insertIndex = slotNum;
+                        find = true;
+                    }
+                    short left = 0;
+                    short right = slotNum - 1;
+                    if (find == false) {
+                        while (left < right) {
+                            short mid = left + (right - left) / 2;
+                            int compareMid;
+                            memcpy(&compareMid, curP + 4 + mid * dataSize, 4);
+                            if (keyFValue > compareMid) {
+                                left = mid + 1;
+                            } else {
+                                right = mid;
+                            }
+                        }
+                        insertIndex = left;
+                    }
+                }
+                if (insertIndex == 0) {
+                    memcpy(&tempPage, curP, 4);
+                } else {
+                    memcpy(&tempPage, curP + insertIndex * dataSize, 4);
+                }
                 ixFileHandle.fileHandle.writePage(nextPageNum, readPage);       // write page to disk
                 free(readPage);
+                nextPageNum=tempPage;
             }
+            //reach the leaf page, leaf page num in nextPage
+            searchIndex=BtreeSearchArray.size()-1;
+            int interiorPageNum=BtreeSearchArray[searchIndex];
+            insertEntryToLeafPage(ixFileHandle,nextPageNum,interiorPageNum,attribute,key,keySize,rid);
+
         }
 
         return 0;
