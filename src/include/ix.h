@@ -53,15 +53,17 @@ namespace PeterDB {
         PagedFileManager* pfm;
 
         RC appendRootPage(IXFileHandle &ixFileHandle);
-        RC appendInteriorPage(IXFileHandle &ixFileHandle,PageNum pageNum);
         RC insertEntryToInteriorPage(IXFileHandle &ixFileHandle,PageNum pageNum,PageNum InteriorPageNum,const Attribute &attribute,const void *key,short keySize,PageNum Lpointer,PageNum Rpointer);
-        RC appendLeafPage(IXFileHandle &ixFileHandle,PageNum pageNum);
         RC insertEntryToLeafPage(IXFileHandle &ixFileHandle,PageNum pageNum,PageNum InteriorPageNum,const Attribute &attribute,const void *key,short keySize,const RID &rid);
         RC splitLeafPage(IXFileHandle &ixFileHandle,PageNum originalPageNum, PageNum splitPageNum,const Attribute &attribute,const void * interiorKey,const void * halfPageData,short dataNums,short keySize, PageNum interiorPageNum, PageNum leftPointer,PageNum rightPointer,int splitFlag);
-        RC writeSplitLeafPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
         RC splitInteriorPage(IXFileHandle &ixFileHandle,PageNum originalPageNum, PageNum splitPageNum,const Attribute &attribute,const void * interiorKey,const void * halfPageData,short dataNums,short keySize, PageNum interiorPageNum, PageNum leftPointer,PageNum rightPointer,int splitFlag);
-        RC writeSplitInteriorPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
         RC resetRootPointer(IXFileHandle &ixFileHandle,PageNum rootPointerPageNum);
+        RC appendAndWriteLeafPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
+        RC appendAndWriteInteriorPage(IXFileHandle &ixFileHandle,PageNum originalPageNum,PageNum pageNum,const void * halfPageData,short dataNums,short keySize,int splitFlag);
+
+        RC searchLeftMostEntry(IXFileHandle &ixFileHandle, PageNum &entryPageNum ,short &entryOffSet, short &entryIndex, void *leafPageBuffer);
+        RC searchEntry(IXFileHandle &ixFileHandle,const Attribute &attribute, const void *key, PageNum &entryPageNum ,short &entryOffSet, short &entryIndex, void *leafPageBuffer);
+        RC printPage(IXFileHandle &ixFileHandle, const Attribute &attribute,PageNum pageNum, std::ostream &out) const;
 
         vector<int> BtreeSearchArray;
         int searchIndex;
@@ -87,10 +89,28 @@ namespace PeterDB {
         // Get next matching entry
         RC getNextEntry(RID &rid, void *key);
 
+        RC initScanIterator(IXFileHandle &ixFileHandle,
+                            const Attribute &attribute,
+                            const void *lowKey,
+                            const void *highKey,
+                            bool lowKeyInclusive,
+                            bool highKeyInclusive,IndexManager* ix);
         // Terminate index scan
         RC close();
+        IXFileHandle* ixFileHandle;
+    private:
+        Attribute attribute;
+        const void *lowKey;
+        const void *highKey;
+        bool lowKeyInclusive;
+        bool highKeyInclusive;
+        IndexManager* ix;
+        PageNum curPageNum;
+        short curOffSet;
+        short curIndex;
+        void *curPageBuffer;
+        short curSlotNum;
     };
-
     class IXFileHandle {
     public:
         static IXFileHandle &instance();
@@ -110,5 +130,7 @@ namespace PeterDB {
 
         FileHandle fileHandle;
     };
+
+
 }// namespace PeterDB
 #endif // _ix_h_

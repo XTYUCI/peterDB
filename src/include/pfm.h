@@ -64,8 +64,7 @@ namespace PeterDB {
         RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount,unsigned &appendPageCount);                 // Put current counter values into variables
 
         void initializePage( PageNum pageNum);
-        void initializeIndexInteriorPage(PageNum pageNum);
-        void initializeIndexLeafNodePage(PageNum pageNum);
+        void initializeRootPage( PageNum pageNum);
         RC closeFile();
         RC setFileP(FILE* _fileP);
         void updateHiddenPage();

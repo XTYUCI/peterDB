@@ -178,37 +178,20 @@ namespace PeterDB {
         free(newPage);
     }
 
-    void FileHandle::initializeIndexInteriorPage(PageNum pageNum)
+    void FileHandle::initializeRootPage(PageNum pageNum)
     {
-        void * newIndexInteriorPage= malloc(PAGE_SIZE);
-        short slotNum=0;
-        short freeBytes=4090;
-        short leafNodeChecker=0; // 0 means it is an unleafNode page
-
-        char * cur=(char *)newIndexInteriorPage;
+        void * newPage= malloc(PAGE_SIZE);
+        short slotNum=1;
+        short freeBytes=4092;
+        char * cur=(char *)newPage;
+        int rootPointer=1;
         memcpy(cur+PAGE_SIZE-2,&freeBytes,2);   // initialize a page with F and N
         memcpy(cur+PAGE_SIZE-4,&slotNum,2);
-        memcpy(cur+PAGE_SIZE-6,&leafNodeChecker,2);
-
-        writePage(pageNum,newIndexInteriorPage);
-        free(newIndexInteriorPage);
+        memcpy(cur,&rootPointer,4);
+        writePage(pageNum,newPage);
+        free(newPage);
     }
 
-    void FileHandle::initializeIndexLeafNodePage(PageNum pageNum)
-    {
-        void * newIndexLeafNodePage= malloc(PAGE_SIZE);
-        short slotNum=0;
-        short freeBytes=4086;
-        short leafNodeChecker=1; // 0 means it is an unleafNode page
-        int nextLeafPagePageNum=-1; // -1 means currently no other leaf page PageNum
-        char * cur=(char *)newIndexLeafNodePage;
-        memcpy(cur+PAGE_SIZE-2,&freeBytes,2);   // initialize a page with F and N
-        memcpy(cur+PAGE_SIZE-4,&slotNum,2);
-        memcpy(cur+PAGE_SIZE-6,&leafNodeChecker,2);
-        memcpy(cur+PAGE_SIZE-10,&nextLeafPagePageNum,4);
-        writePage(pageNum,newIndexLeafNodePage);
-        free(newIndexLeafNodePage);
-    }
 
     void FileHandle::updateHiddenPage()
     {
