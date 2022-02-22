@@ -457,7 +457,7 @@ namespace PeterDBTesting {
             key = i + seed;
             rid.pageNum = (unsigned) (key * salt + seed) % INT_MAX;
             rid.slotNum = (unsigned) (key * salt * seed + seed) % SHRT_MAX;
-            
+
             ASSERT_EQ(ix.deleteEntry(ixFileHandle, ageAttr, &key, rid), success)
                                         << "indexManager::deleteEntry() should succeed.";
 
