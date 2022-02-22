@@ -268,6 +268,7 @@ namespace PeterDBTesting {
 
         // Fetch and check all entries
         count = 0;
+
         while (ix_ScanIterator.getNextEntry(rid, &key) == success) {
             validateUnorderedRID(key, count + seed, this->rids);
             count++;
@@ -456,7 +457,7 @@ namespace PeterDBTesting {
             key = i + seed;
             rid.pageNum = (unsigned) (key * salt + seed) % INT_MAX;
             rid.slotNum = (unsigned) (key * salt * seed + seed) % SHRT_MAX;
-
+            
             ASSERT_EQ(ix.deleteEntry(ixFileHandle, ageAttr, &key, rid), success)
                                         << "indexManager::deleteEntry() should succeed.";
 
@@ -548,8 +549,11 @@ namespace PeterDBTesting {
 
         // insert entries
         generateAndInsertEntries(numOfEntries / 4, heightAttr, seed, salt);
+
         generateAndInsertEntries(numOfEntries / 4, heightAttr, seed + 1267, salt - 414);
+
         generateAndInsertEntries(numOfEntries / 4, heightAttr, seed - 5, salt + 523);
+
         generateAndInsertEntries(numOfEntries / 4, heightAttr, seed + 14, salt - 413);
 
         EXPECT_GE (getFileSize(indexFileName) / PAGE_SIZE, numOfEntries / PAGE_SIZE / 10)
@@ -567,6 +571,7 @@ namespace PeterDBTesting {
             if (count % 5000 == 0) {
                 GTEST_LOG_(INFO) << count << " - Returned rid: " << rid.pageNum << " " << rid.slotNum;
             }
+
             ASSERT_EQ(ix.deleteEntry(ixFileHandle, heightAttr, &key, rid), success)
                                         << "indexManager::deleteEntry() should succeed.";
         }
