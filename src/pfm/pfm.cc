@@ -62,8 +62,12 @@ namespace PeterDB {
     }
 
     RC PagedFileManager::openFile(const std::string &fileName, FileHandle &fileHandle) {
+        FILE * FP=fileHandle.getFileP();
+        if(FP!= nullptr)
+        {
+            return -1;
+        }
         FILE *fp;
-
         fp= fopen(fileName.c_str(),"rb");
         if (!fp)
         {
@@ -174,6 +178,20 @@ namespace PeterDB {
         free(newPage);
     }
 
+    void FileHandle::initializeRootPage(PageNum pageNum)
+    {
+        void * newPage= malloc(PAGE_SIZE);
+        short slotNum=1;
+        short freeBytes=4092;
+        char * cur=(char *)newPage;
+        int rootPointer=1;
+        memcpy(cur+PAGE_SIZE-2,&freeBytes,2);   // initialize a page with F and N
+        memcpy(cur+PAGE_SIZE-4,&slotNum,2);
+        memcpy(cur,&rootPointer,4);
+        writePage(pageNum,newPage);
+        free(newPage);
+    }
+
 
     void FileHandle::updateHiddenPage()
     {
@@ -203,6 +221,8 @@ namespace PeterDB {
         free(P);
     }
 
+
+
     RC FileHandle::closeFile()
     {
 
@@ -219,5 +239,10 @@ namespace PeterDB {
     {
         fileP=_fileP;
         return 0;
+    }
+
+    FILE * FileHandle::getFileP()
+    {
+        return fileP;
     }
 } // namespace PeterDB
