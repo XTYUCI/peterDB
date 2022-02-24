@@ -474,6 +474,7 @@ namespace PeterDB {
             void * interiorKey=malloc(PAGE_SIZE);
             char * Phalf=(char *)halfPage;
             char * PinteriorKey=(char *)interiorKey;
+            int stringInteriorKeySize=0;
             short dataNums=0;
             short stringHalfPageSize;
            // 0 split insert entry in left   , 1 split right
@@ -510,6 +511,7 @@ namespace PeterDB {
                     memcpy(&l,Phalf,4);
                     memcpy(PinteriorKey, Phalf, 4);
                     memcpy(PinteriorKey+4, Phalf+4, l);
+                    stringInteriorKeySize+=4+l;
                     stringHalfPageSize=4086-freeBytes-stringHalfOffset+dataSize;
 
                 }else {
@@ -565,6 +567,7 @@ namespace PeterDB {
                     memcpy(&l,Phalf,4);
                     memcpy(PinteriorKey, &l, 4);
                     memcpy(PinteriorKey+4, Phalf+4, l);
+                    stringInteriorKeySize+=4+l;
                     stringHalfPageSize=4086-freeBytes-stringHalfOffset;
 
                 }else {
@@ -600,9 +603,17 @@ namespace PeterDB {
             //set append page pointer
 
             memcpy(curP + PAGE_SIZE - 10, &splitPageNum, 4);
-            splitLeafPage(ixFileHandle, originalPageNum,splitPageNum, attribute, interiorKey, halfPage, dataNums, keySize,
-                          InteriorPageNum, originalPageNum, splitPageNum,stringHalfPageSize);
+            if(attribute.type==TypeVarChar)
+            {
+                splitLeafPage(ixFileHandle, originalPageNum, splitPageNum, attribute, interiorKey, halfPage, dataNums,
+                              stringInteriorKeySize,
+                              InteriorPageNum, originalPageNum, splitPageNum, stringHalfPageSize);
 
+            }else {
+                splitLeafPage(ixFileHandle, originalPageNum, splitPageNum, attribute, interiorKey, halfPage, dataNums,
+                              keySize,
+                              InteriorPageNum, originalPageNum, splitPageNum, stringHalfPageSize);
+            }
 
             free(halfPage);
             free(interiorKey);
@@ -748,7 +759,7 @@ namespace PeterDB {
                 short migrateSizes=4090-freeBytes-stringCurOffset;
                 memcpy(curP+stringCurOffset+dataSize,curP+stringCurOffset,migrateSizes);
                 memcpy(curP+stringCurOffset,&Lpointer,4);
-                memcpy(curP+stringCurOffset+4,key,keySize);
+                memcpy(curP+stringCurOffset+4,(char *)key,keySize);
                 memcpy(curP+stringCurOffset+4+keySize,&Rpointer,4);
                 slotNum += 1;
                 freeBytes = freeBytes - dataSize;
@@ -773,6 +784,7 @@ namespace PeterDB {
             void * interiorKey=malloc(PAGE_SIZE);
             char * Phalf=(char *)halfPage;
             char * PinteriorKey=(char *)interiorKey;
+            int stringInteriorKeySize=0;
             short dataNums=0;
             short stringHalfPageSize;
             if(insertIndex>=(slotNum+1)/2) // insert num in spilt part
@@ -806,6 +818,7 @@ namespace PeterDB {
                     memcpy(&l,Phalf+4,4);
                     memcpy(PinteriorKey, Phalf+4, 4);
                     memcpy(PinteriorKey+4, Phalf+4+4, l);
+                    stringInteriorKeySize+=4+l;
                     memcpy(Phalf, Phalf + 4 + 4+l, 4090-freeBytes-stringHalfOffset+dataSize+4-4-4-l );
                     memset(Phalf +4090-freeBytes-stringHalfOffset+dataSize+4-4-4-l, 0, 4 + 4+l);
                     stringHalfPageSize=4090-freeBytes-stringHalfOffset+dataSize+4-4-4-l;
@@ -860,6 +873,7 @@ namespace PeterDB {
                     memcpy(&l,Phalf+4,4);
                     memcpy(PinteriorKey, Phalf+4, 4);
                     memcpy(PinteriorKey+4, Phalf+4+4, l);
+                    stringInteriorKeySize+=4+l;
                     memcpy(Phalf, Phalf + 4 + 4+l, 4090-freeBytes-stringHalfOffset+4-4-4-l );
                     memset(Phalf +4090-freeBytes-stringHalfOffset+4-4-4-l, 0, 4 + 4+l);
                     stringHalfPageSize=4090-freeBytes-stringHalfOffset+4-4-4-l;
@@ -890,10 +904,17 @@ namespace PeterDB {
 
 
             //set append page pointer
+            if(attribute.type==TypeVarChar)
+            {
+                splitInteriorPage(ixFileHandle, originalPageNum, splitPageNum, attribute, interiorKey, halfPage,
+                                  dataNums, stringInteriorKeySize,
+                                  InteriorPageNum, originalPageNum, splitPageNum, stringHalfPageSize);
 
-            splitInteriorPage(ixFileHandle, originalPageNum,splitPageNum, attribute, interiorKey, halfPage, dataNums, keySize,
-                              InteriorPageNum, originalPageNum, splitPageNum,stringHalfPageSize);
-
+            }else {
+                splitInteriorPage(ixFileHandle, originalPageNum, splitPageNum, attribute, interiorKey, halfPage,
+                                  dataNums, keySize,
+                                  InteriorPageNum, originalPageNum, splitPageNum, stringHalfPageSize);
+            }
             free(halfPage);
             free(interiorKey);
         }
@@ -931,9 +952,16 @@ namespace PeterDB {
         }
 
         if(searchIndex==0) {
-            insertEntryToInteriorPage(ixFileHandle, interiorPageNum, -1, attribute, interiorKey, keySize,
-                                      leftPointer,
-                                      rightPointer);
+            if(attribute.type==TypeVarChar)
+            {
+                insertEntryToInteriorPage(ixFileHandle, interiorPageNum, -1, attribute, interiorKey, keySize,
+                                          leftPointer,
+                                          rightPointer);
+            }else {
+                insertEntryToInteriorPage(ixFileHandle, interiorPageNum, -1, attribute, interiorKey, keySize,
+                                          leftPointer,
+                                          rightPointer);
+            }
             return 0;
         }
         else
@@ -1613,10 +1641,10 @@ namespace PeterDB {
                     childPointerArray.push_back(curChildPointer);
                     stringOffset+=4;
                     int varCharLength;
-                    memcpy(&varCharLength,curP+stringOffset,4);
-                    stringOffset+=4;
                     for(int i=0;i<slotNum;i++)
                     {
+                        memcpy(&varCharLength,curP+stringOffset,4);
+                        stringOffset+=4;
                         curKeySvalue=string(curP+stringOffset,varCharLength);
                         stringOffset+=varCharLength;
                         memcpy(&curChildPointer,curP+stringOffset,4);
@@ -1796,9 +1824,9 @@ namespace PeterDB {
                         }
                     }else{
                         string deleteSKey;
-                        int varcharLength;
-                        memcpy(&varcharLength,curP+curOffSet,4);
-                        deleteSKey=string (curP+curOffSet+4,varcharLength);
+                        int varLength;
+                        memcpy(&varLength,curP+curOffSet,4);
+                        deleteSKey=string (curP+curOffSet+4,varLength);
                         if(deleteSKey==lowKeySValue)
                         {
                             find= true;
@@ -1818,13 +1846,13 @@ namespace PeterDB {
                                 }
                             } else {
                                 curIndex += 1;
-                                curOffSet = curOffSet+4+varcharLength+sizeof(unsigned)+sizeof(short) ;
+                                curOffSet = curOffSet+4+varLength+sizeof(unsigned)+sizeof(short) ;
                             }
                             curP = (char *) curPageBuffer;
                             memcpy(&curSlotNum, curP + PAGE_SIZE - 4, 2);
                             int varcharLength;
-                            memcpy(&varcharLength,curP+curOffSet,4);
-                            deleteSKey=string (curP+curOffSet+4,varcharLength);
+                            memcpy(&varLength,curP+curOffSet,4);
+                            deleteSKey=string (curP+curOffSet+4,varLength);
                             if(deleteSKey>lowKeySValue){break;}
                             if(deleteSKey==lowKeySValue )
                             {
@@ -1950,13 +1978,13 @@ namespace PeterDB {
                         }
                         return 0;
                     }else{ //attribute==varchar
-                        int varCharLength;
-                        memcpy(&varCharLength, curP + curOffSet, 4);
+                        int varLength;
+                        memcpy(&varLength, curP + curOffSet, 4);
 
                         memcpy((char *)key, curP+curOffSet, 4);
-                        memcpy((char *)key+4, curP+curOffSet+4, varCharLength);
-                        memcpy(&rid.pageNum, curP + curOffSet + 4+varCharLength, sizeof(unsigned));
-                        memcpy(&rid.slotNum, curP + curOffSet + 4 +varCharLength+ sizeof(unsigned), sizeof(short));
+                        memcpy((char *)key+4, curP+curOffSet+4, varLength);
+                        memcpy(&rid.pageNum, curP + curOffSet + 4+varLength, sizeof(unsigned));
+                        memcpy(&rid.slotNum, curP + curOffSet + 4 +varLength+ sizeof(unsigned), sizeof(short));
                         if(curIndex==curSlotNum-1){
                             int nextPageNum;
                             memcpy(&nextPageNum,curP+PAGE_SIZE-10,4);
@@ -1976,7 +2004,7 @@ namespace PeterDB {
                         }else
                         {
                             curIndex+=1;
-                            curOffSet=curOffSet+4+varCharLength+sizeof(unsigned)+sizeof(short);
+                            curOffSet=curOffSet+4+varLength+sizeof(unsigned)+sizeof(short);
                         }
                         return 0;
                     }
@@ -2063,14 +2091,14 @@ namespace PeterDB {
                         }
                         else{ //attribute==varchar
                             string keySValue;
-                            int varCharLength;
-                            memcpy(&varCharLength, curP + curOffSet, 4);
-                            keySValue=string (curP+curOffSet+4,varCharLength);
+                            int varLength;
+                            memcpy(&varLength, curP + curOffSet, 4);
+                            keySValue=string (curP+curOffSet+4,varLength);
                             if (keySValue <= highKeySValue) {
                                 memcpy((char *) key, curP+curOffSet, 4);
-                                memcpy((char *) key+4, curP+curOffSet+4, varCharLength);
-                                memcpy(&rid.pageNum, curP + curOffSet + 4+varCharLength, sizeof(unsigned));
-                                memcpy(&rid.slotNum, curP + curOffSet + 4 +varCharLength+ sizeof(unsigned), sizeof(short));
+                                memcpy((char *) key+4, curP+curOffSet+4, varLength);
+                                memcpy(&rid.pageNum, curP + curOffSet + 4+varLength, sizeof(unsigned));
+                                memcpy(&rid.slotNum, curP + curOffSet + 4 +varLength+ sizeof(unsigned), sizeof(short));
                                 if(curIndex==curSlotNum-1){
                                     int nextPageNum;
                                     memcpy(&nextPageNum,curP+PAGE_SIZE-10,4);
@@ -2090,7 +2118,7 @@ namespace PeterDB {
                                 }else
                                 {
                                     curIndex+=1;
-                                    curOffSet=curOffSet+4+varCharLength+sizeof(unsigned)+sizeof(short);
+                                    curOffSet=curOffSet+4+varLength+sizeof(unsigned)+sizeof(short);
                                 }
                                 return 0;
                             }
@@ -2179,14 +2207,14 @@ namespace PeterDB {
                         }
                         else{ //attribute==varchar
                             string keySValue;
-                            int varCharLength;
-                            memcpy(&varCharLength, curP + curOffSet, 4);
-                            keySValue=string (curP+curOffSet+4,varCharLength);
+                            int varLength;
+                            memcpy(&varLength, curP + curOffSet, 4);
+                            keySValue=string (curP+curOffSet+4,varLength);
                             if (keySValue < highKeySValue) {
                                 memcpy((char *)key, curP+curOffSet, 4);
-                                memcpy((char *)key+4, curP+curOffSet+4, varCharLength);
-                                memcpy(&rid.pageNum, curP + curOffSet + 4+varCharLength, sizeof(unsigned));
-                                memcpy(&rid.slotNum, curP + curOffSet + 4 +varCharLength+ sizeof(unsigned), sizeof(short));
+                                memcpy((char *)key+4, curP+curOffSet+4, varLength);
+                                memcpy(&rid.pageNum, curP + curOffSet + 4+varLength, sizeof(unsigned));
+                                memcpy(&rid.slotNum, curP + curOffSet + 4 +varLength+ sizeof(unsigned), sizeof(short));
                                 if(curIndex==curSlotNum-1){
                                     int nextPageNum;
                                     memcpy(&nextPageNum,curP+PAGE_SIZE-10,4);
@@ -2206,7 +2234,7 @@ namespace PeterDB {
                                 }else
                                 {
                                     curIndex+=1;
-                                    curOffSet=curOffSet+4+varCharLength+sizeof(unsigned)+sizeof(short);
+                                    curOffSet=curOffSet+4+varLength+sizeof(unsigned)+sizeof(short);
                                 }
                                 return 0;
                             }
@@ -2274,13 +2302,13 @@ namespace PeterDB {
                         }
                         return 0;
                     }else{ //attribute==varchar
-                        int varCharLength;
-                        memcpy(&varCharLength, curP + curOffSet, 4);
+                        int varLength;
+                        memcpy(&varLength, curP + curOffSet, 4);
 
                         memcpy((char *)key, curP+curOffSet, 4);
-                        memcpy((char *)key+4, curP+curOffSet+4, varCharLength);
-                        memcpy(&rid.pageNum, curP + curOffSet + 4+varCharLength, sizeof(unsigned));
-                        memcpy(&rid.slotNum, curP + curOffSet + 4 +varCharLength+ sizeof(unsigned), sizeof(short));
+                        memcpy((char *)key+4, curP+curOffSet+4, varLength);
+                        memcpy(&rid.pageNum, curP + curOffSet + 4+varLength, sizeof(unsigned));
+                        memcpy(&rid.slotNum, curP + curOffSet + 4 +varLength+ sizeof(unsigned), sizeof(short));
                         if(curIndex==curSlotNum-1){
                             int nextPageNum;
                             memcpy(&nextPageNum,curP+PAGE_SIZE-10,4);
@@ -2300,7 +2328,7 @@ namespace PeterDB {
                         }else
                         {
                             curIndex+=1;
-                            curOffSet=curOffSet+4+varCharLength+sizeof(unsigned)+sizeof(short);
+                            curOffSet=curOffSet+4+varLength+sizeof(unsigned)+sizeof(short);
                         }
                         return 0;
                     }

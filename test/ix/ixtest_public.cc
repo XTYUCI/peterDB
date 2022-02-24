@@ -622,7 +622,6 @@ namespace PeterDBTesting {
             rid.slotNum = rid.pageNum + 1;
             ASSERT_EQ(ix.insertEntry(ixFileHandle, empNameAttr, &key, rid), success)
                                         << "indexManager::insertEntry() should succeed.";
-
             rids.emplace_back(rid);
         }
 
@@ -639,6 +638,7 @@ namespace PeterDBTesting {
         // collect counter
         ASSERT_EQ(ixFileHandle.collectCounterValues(rc, wc, ac), success)
                                     << "indexManager::collectCounterValues() should succeed.";
+
 
         // Scan
         memset(key, 0, 100);
