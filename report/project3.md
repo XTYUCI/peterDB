@@ -12,8 +12,10 @@
 
 ### 2. Meta-data page in an index file
 - Show your meta-data page of an index design if you have any. 
-   page 0 contains the pointer of the root page
-   a hidden pagen contain the written,append and read counter.    
+   
+page 0 contains the pointer of the root page
+
+a hidden pagen contain the written,append and read counter.    
 
 ### 3. Index Entry Format
 - Show your index entry design (structure). 
@@ -44,11 +46,12 @@ nextPagePointer contains the pointer that pointer to next page, if its -1 means 
 ### 5. Describe the following operation logic.
 - Split
 
-If the freebytes in is not enough then we do a split.
-First we need to check the insert key will be insert in the original page or in the split page.
-Then we need copy the split data to a new data buffer and insert the key to one of the split page or the original page.
-If it is a split of interior nodes, we pick and remove the first key from the split page. Set it as the new parent key of the split page and the original page.
-If it is a split of leaf nodes, we pick but not remove the first key from the split page. Set it as the new parent key of the split page and the original page.
+If the freebytes in this page is not enough then we do a split.
+First we need to check the insert key will be insert in the original page or in the split page. 
+Then we need to copy the split data to a new data buffer and insert the key to one of the split page or the original page.
+If we are doing a split of interior nodes, we pick and remove the first key from the split page. Set it as the new parent key of the split page and the original page.
+If we are doing a split of leaf nodes, we pick but not remove the first key from the split page. Set it as the new parent key of the split page and the original page.
+At last, we insert the new parnet key of these two split page into their parent inerior nodes.
 If there is no parent interior page, we append a new one.
 If there the parent interior page is also full, we then split the parent interior page. 
 This whole insert process is doing recursively from buttom to up until the we reach the top layer in the tree.
