@@ -284,6 +284,47 @@ namespace PeterDBTesting {
         }
 
     };
+
+    class IX_Private_Test : public IX_Test {
+    protected:
+        PeterDB::IXFileHandle ixFileHandle2;
+        std::string indexFileName2 = "ix_private_test_index_file";
+        PeterDB::RID rid2;
+        unsigned rc2, wc2, ac2, rcAfter2, wcAfter2, acAfter2;
+        PeterDB::IX_ScanIterator ix_ScanIterator2;
+        std::vector<PeterDB::RID> rids2;
+
+        PeterDB::Attribute shortEmpNameAttr{"short_emp_name", PeterDB::TypeVarChar, 20};
+        PeterDB::Attribute longEmpNameAttr{"long_emp_name", PeterDB::TypeVarChar, 100};
+
+    public:
+        void SetUp() override {
+            remove(indexFileName.c_str());
+            remove(indexFileName2.c_str());
+
+            // create index file
+            ASSERT_EQ(ix.createFile(indexFileName), success) << "indexManager::createFile() should success";
+            ASSERT_EQ(ix.createFile(indexFileName2), success) << "indexManager::createFile() should success";
+
+            // open index file
+            ASSERT_EQ(ix.openFile(indexFileName, ixFileHandle), success) << "indexManager::openFile() should succeed.";
+            ASSERT_EQ(ix.openFile(indexFileName2, ixFileHandle2), success) << "indexManager::openFile() should succeed.";
+        }
+
+        void TearDown() override {
+            if (closeFile) {
+                // close index file
+                ASSERT_EQ(ix.closeFile(ixFileHandle), success) << "indexManager::closeFile() should succeed.";
+                ASSERT_EQ(ix.closeFile(ixFileHandle2), success) << "indexManager::closeFile() should succeed.";
+            }
+            if (destroyFile) {
+                // destroy index file
+                ASSERT_EQ(ix.destroyFile(indexFileName), success) << "indexManager::destroyFile() should succeed.";
+                ASSERT_EQ(ix.destroyFile(indexFileName2), success) << "indexManager::destroyFile() should succeed.";
+            }
+        }
+
+    };
 } // namespace PeterDBTesting
 
 #endif // IX_TEST_UTILS_H
