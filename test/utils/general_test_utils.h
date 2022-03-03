@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 #include <sstream>
 #include <fstream>
+#include <dirent.h>
 
 #include "glog/logging.h"
 #include "gtest/gtest.h"
@@ -225,6 +226,23 @@ namespace PeterDBTesting {
             }
         }
         return result;
+    }
+
+    std::vector<std::string> glob(const std::string &suffix) {
+        std::vector<std::string> files;
+        DIR *dpdf;
+        struct dirent *epdf;
+
+        dpdf = opendir("./");
+        if (dpdf != nullptr) {
+            while ((epdf = readdir(dpdf))) {
+                if (strstr(epdf->d_name, suffix.c_str())) {
+                    files.emplace_back(epdf->d_name);
+                }
+            }
+        }
+        closedir(dpdf);
+        return files;
     }
 
 } // namespace PeterDBTesting

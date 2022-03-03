@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "src/include/rbfm.h"
+#include "src/include/ix.h"
 #define VARCHAR_LENGTH 50
 namespace PeterDB {
 #define RM_EOF (-1)  // end of a scan operator
@@ -23,6 +24,20 @@ namespace PeterDB {
 
         RBFM_ScanIterator rbfm_scanIterator;
 
+    };
+
+    // RM_IndexScanIterator is an iterator to go through index entries
+    class RM_IndexScanIterator {
+    public:
+        RM_IndexScanIterator();    // Constructor
+        ~RM_IndexScanIterator();    // Destructor
+
+        // "key" follows the same format as in IndexManager::insertEntry()
+        RC getNextEntry(RID &rid, void *key);    // Get next matching entry
+        RC close();                              // Terminate index scan
+
+        IX_ScanIterator ix_scanIterator;
+        IXFileHandle ixFileHandle;
     };
 
     // Relation Manager
@@ -70,6 +85,20 @@ namespace PeterDB {
 
         RC destroyFile(const std::string &fileName);
 
+        // QE IX related
+        RC createIndex(const std::string &tableName, const std::string &attributeName);
+
+        RC destroyIndex(const std::string &tableName, const std::string &attributeName);
+
+        // indexScan returns an iterator to allow the caller to go through qualified entries in index
+        RC indexScan(const std::string &tableName,
+                     const std::string &attributeName,
+                     const void *lowKey,
+                     const void *highKey,
+                     bool lowKeyInclusive,
+                     bool highKeyInclusive,
+                     RM_IndexScanIterator &rm_IndexScanIterator);
+
     protected:
         RelationManager();                                                  // Prevent construction
         ~RelationManager();                                                 // Prevent unwanted destruction
@@ -78,15 +107,20 @@ namespace PeterDB {
     private:
         RC initializeTablesDescriptor();
         RC initializeColumnsDescriptor();
+        RC initializeIndexsDescriptor();
         RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
         RC insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor);
+        RC insertRecordToIndexs(int table_id,const string &columnName,const string &indexFileName);
+        RC getIndexAttrsNameANDrid(const std::string &tableName, std::vector<string> &indexAttrs,std::vector<RID> &indexRids);
+        RC updateIndex(const string &tableName,std::vector<string> &indexAttrs,std::vector<Attribute> &attrs, std::vector<RID> &indexRids, int insertOrDelete);
         int getTablesMaxIndex();
         int getTableId(const string &tableName,RID &rid);
 
         RecordBasedFileManager *rbfm;
+        IndexManager* ix;
         vector<Attribute> tablesRecordDescriptor;
         vector<Attribute> columnsRecordDescriptor;
-
+        vector<Attribute> indexRecordRescriptor;
 
     };
 
