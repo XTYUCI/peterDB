@@ -321,54 +321,57 @@ namespace PeterDB {
         this->curBlockSize=0;
         this->blockBuffer= malloc(numPages*PAGE_SIZE);
         this->rightTupleBuffer= malloc(PAGE_SIZE);
-        this->rightTableScanEnd= false;
-        this->tupleOffsetArrayCount=0;
+        this->rightTableScanEnd= true;
+        this->tupleOffsetArrayIndex=0;
         this->leftTableScanEnd= false;
         this->scanNextRightTuple= true;
         this->blockLoaded= false;
+        this->firstLoad= true;
     }
 
     BNLJoin::~BNLJoin() {
-        free(this->leftTupleBuffer);
         free(this->rightTupleBuffer);
         free(this->blockBuffer);
     }
 
     RC BNLJoin::getNextTuple(void *data) {
-        while (leftTableScanEnd != true && blockLoaded != false) {
+        if(firstLoad)
+        {
+            getNextBlock();
+            firstLoad= false;
+        }
+        while (leftTableScanEnd == false && blockLoaded == true) {
 
-            if (leftTableScanEnd == false && blockLoaded == false && rightTableScanEnd == true) {
-                getNextBlock();
-            }
-            else if (leftTableScanEnd == false & blockLoaded == true && rightTableScanEnd == false) {
-                if(scanNextRightTuple=true) {
+            if ( blockLoaded == true && rightTableScanEnd == false) {
+                if(scanNextRightTuple==true) {
                     if (this->rightInput->getNextTuple(rightTupleBuffer) != RM_EOF) {
                         // get right filter value
                         char *PrightTuple = (char *) rightTupleBuffer;
                         AttrType filterType;
                         int tupleLength = 0;
                         void *filterValue = malloc(PAGE_SIZE);
-                        getAttrOffsetAndTupleLength(leftAttrs, condition.rhsAttr, filterValue, PrightTuple, tupleLength,
+                        getAttrOffsetAndTupleLength(rightAttrs, condition.rhsAttr, filterValue, PrightTuple, tupleLength,
                                                     filterType);
 
                         // get corresponding left tuple offset from map
-                        int lefTupleOffset;
                         if (filterType == TypeInt) {
                             int rightIntKey;
                             memcpy(&rightIntKey, (char *) filterValue, 4);
                             auto it = intHashTable.find(rightIntKey);
                             if (it != intHashTable.end()) {
 
-                                if(tupleOffsetArrayCount!=it->second.size()-1)
+                                if(tupleOffsetArrayIndex!=it->second.size()-1)
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     return 0;
                                 }else
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount=0;
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
                                     return 0;
                                 }
@@ -380,16 +383,18 @@ namespace PeterDB {
                             memcpy(&rightRealKey, (char *) filterValue, 4);
                             auto it = realHashTable.find(rightRealKey);
                             if (it != realHashTable.end()) {
-                                if(tupleOffsetArrayCount!=it->second.size()-1)
+                                if(tupleOffsetArrayIndex!=it->second.size()-1)
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     return 0;
                                 }else
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount=0;
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
                                     return 0;
                                 }
@@ -403,16 +408,18 @@ namespace PeterDB {
                             varcharKey = string((char *) filterValue + 4, varlength);
                             auto it = varcharHashTable.find(varcharKey);
                             if (it != varcharHashTable.end()) {
-                                if(tupleOffsetArrayCount!=it->second.size()-1)
+                                if(tupleOffsetArrayIndex!=it->second.size()-1)
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     return 0;
                                 }else
                                 {
-                                    mergeDatas();
-                                    tupleOffsetArrayCount=0;
+                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                    tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
                                     return 0;
                                 }
@@ -426,7 +433,7 @@ namespace PeterDB {
                         cleanBlock();
                         rightTableScanEnd = true;
                     }
-                }else  // do not get next tuple
+                }else  // do not get scan next tuple of right table
                 {
                     // get right filter value
                     char *PrightTuple = (char *) rightTupleBuffer;
@@ -444,16 +451,18 @@ namespace PeterDB {
                         auto it = intHashTable.find(rightIntKey);
                         if (it != intHashTable.end()) {
 
-                            if(tupleOffsetArrayCount!=it->second.size()-1)
+                            if(tupleOffsetArrayIndex!=it->second.size()-1)
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 return 0;
                             }else
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount=0;
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
                                 return 0;
                             }
@@ -465,16 +474,18 @@ namespace PeterDB {
                         memcpy(&rightRealKey, (char *) filterValue, 4);
                         auto it = realHashTable.find(rightRealKey);
                         if (it != realHashTable.end()) {
-                            if(tupleOffsetArrayCount!=it->second.size()-1)
+                            if(tupleOffsetArrayIndex!=it->second.size()-1)
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 return 0;
                             }else
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount=0;
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
                                 return 0;
                             }
@@ -488,16 +499,18 @@ namespace PeterDB {
                         varcharKey = string((char *) filterValue + 4, varlength);
                         auto it = varcharHashTable.find(varcharKey);
                         if (it != varcharHashTable.end()) {
-                            if(tupleOffsetArrayCount!=it->second.size()-1)
+                            if(tupleOffsetArrayIndex!=it->second.size()-1)
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount+=1;   // wait for other merge in vector
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 return 0;
                             }else
                             {
-                                mergeDatas();
-                                tupleOffsetArrayCount=0;
+                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
+                                tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
                                 return 0;
                             }
@@ -507,6 +520,9 @@ namespace PeterDB {
                     }
                 }
 
+            }
+            if ( blockLoaded == false && rightTableScanEnd == true) {
+                getNextBlock();  // reload block
             }
         }
         // end join
@@ -542,6 +558,7 @@ namespace PeterDB {
             {
                 free(filterValue);
                 blockLoaded= true;
+                rightTableScanEnd= false;
                 return 0;
             }
 
@@ -598,9 +615,12 @@ namespace PeterDB {
             free(filterValue);
         }
         if(curBlockSize>0)// not full
-        {blockLoaded= true;}
+        {blockLoaded= true;
+            rightTableScanEnd= false;}
         else{blockLoaded= false;}
-        leftTableScanEnd= true;
+        if(!firstLoad) {
+            leftTableScanEnd = true;
+        }
         return 0;
     }
 
@@ -679,26 +699,26 @@ namespace PeterDB {
         char * Pleft=(char *)leftValue;
         char * Pright=(char *)rightValue;
         char * Pdata=(char *)data;
-
+        //left null
         int leftFields=rightAttrs.size();
         int leftNullBytesLen = ceil(leftFields / 8)+1;
         char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
         memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
         bool isNullleft;// check attr is null
         int leftCurOffset=leftNullBytesLen;
-
+        // right null
         int rightFields=rightAttrs.size();
         int rightNullBytesLen = ceil(rightFields / 8)+1;
         char * rightNullIndicator = (char*)malloc(rightNullBytesLen);
         memcpy(rightNullIndicator,Pright,rightNullBytesLen);
         bool isNullright;// check attr is null
         int rightCurOffset=rightNullBytesLen;
-
+        //data null
         int dataFields=this->leftAttrs.size()+this->rightAttrs.size();
         int dataNullBytesLen = ceil(dataFields / 8)+1;
         char * dataNullIndicator = (char*)malloc(dataNullBytesLen);
         memset(dataNullIndicator,0, dataNullBytesLen);
-
+        int dataCurOffset=dataNullBytesLen;
         for(int i=0;i<leftFields;i++)
         {
             int bytePosition = i / 8;
@@ -710,12 +730,59 @@ namespace PeterDB {
                 int byteIndex = i / 8;
                 int bitIndex = i % 8;
                 dataNullIndicator[byteIndex] += pow(2, 7-bitIndex);
+            }else
+            {
+                if(leftAttrs[i].type==TypeVarChar)
+                {
+                    int varLength;
+                    memcpy(&varLength,Pleft+leftCurOffset,4);
+                    memcpy(Pdata+dataCurOffset,&varLength,4);
+                    leftCurOffset+=4;
+                    dataCurOffset+=4;
+                    memcpy(Pdata+dataCurOffset,Pleft+leftCurOffset,varLength);
+                    leftCurOffset+=varLength;
+                    dataCurOffset+=varLength;
+                }else
+                {
+                    memcpy(Pdata+dataCurOffset,Pleft+leftCurOffset,4);
+                    leftCurOffset+=4;
+                    dataCurOffset+=4;
+                }
             }
         }
         for(int i=0;i<rightFields;i++)
         {
-
+            int bytePosition = i / 8;
+            int bitPosition = i % 8;
+            char b = leftNullIndicator[bytePosition];
+            isNullright=  ((b >> (7 - bitPosition)) & 0x1);
+            if(isNullright)
+            {
+                int byteIndex = (i+leftFields) / 8;
+                int bitIndex = (i+leftFields) % 8;
+                dataNullIndicator[byteIndex] += pow(2, 7-bitIndex);
+            }else
+            {
+                if(rightAttrs[i].type==TypeVarChar)
+                {
+                    int varLength;
+                    memcpy(&varLength,Pright+rightCurOffset,4);
+                    memcpy(Pdata+dataCurOffset,&varLength,4);
+                    rightCurOffset+=4;
+                    dataCurOffset+=4;
+                    memcpy(Pdata+dataCurOffset,Pright+rightCurOffset,varLength);
+                    rightCurOffset+=varLength;
+                    dataCurOffset+=varLength;
+                }else
+                {
+                    memcpy(Pdata+dataCurOffset,Pright+rightCurOffset,4);
+                    rightCurOffset+=4;
+                    dataCurOffset+=4;
+                }
+            }
         }
+
+        memcpy(Pdata,dataNullIndicator,dataNullBytesLen);
         free(leftNullIndicator);
         free(rightNullIndicator);
         free(dataNullIndicator);
@@ -725,12 +792,13 @@ namespace PeterDB {
     {
         blockLoaded= false;
         memset(blockBuffer,0,numPages*PAGE_SIZE);
+        curBlockSize=0;
         return 0;
     }
 
 
     INLJoin::INLJoin(Iterator *leftIn, IndexScan *rightIn, const Condition &condition) {
-
+        
     }
 
     INLJoin::~INLJoin() {

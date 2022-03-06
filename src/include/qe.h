@@ -231,16 +231,16 @@ namespace PeterDB {
         vector<Attribute> rightAttrs;
         int curBlockSize;
         void * blockBuffer;
-        void * leftTupleBuffer;
         void * rightTupleBuffer;
         unordered_map<int,vector<int> > intHashTable;
         unordered_map<float,vector<int> > realHashTable;
         unordered_map<string,vector<int> > varcharHashTable;
-        int tupleOffsetArrayCount;
+        int tupleOffsetArrayIndex;
         bool scanNextRightTuple;
         bool rightTableScanEnd;
         bool leftTableScanEnd;
         bool blockLoaded;
+        bool firstLoad;
     };
 
     class INLJoin : public Iterator {
