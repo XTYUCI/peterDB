@@ -111,8 +111,8 @@ namespace PeterDB {
         RC insertRecordToTables(int ID, const string &tableName, const string &fileName);
         RC insertRecordToColumns(int table_id, const vector<Attribute> recordDescriptor);
         RC insertRecordToIndexs(int table_id,const string &columnName,const string &indexFileName);
-        RC getIndexAttrsNameANDrid(const std::string &tableName, std::vector<string> &indexAttrs,std::vector<RID> &indexRids);
-        RC updateIndex(const string &tableName,std::vector<string> &indexAttrs,std::vector<Attribute> &attrs, std::vector<RID> &indexRids, int insertOrDelete);
+        RC getIndexAttrsName(const std::string &tableName, std::vector<string> &indexAttrs);
+        RC updateIndex(const string &tableName,std::vector<string> &indexAttrs,std::vector<Attribute> &attrs, int insertOrDelete, const RID &rid );
         int getTablesMaxIndex();
         int getTableId(const string &tableName,RID &rid);
 

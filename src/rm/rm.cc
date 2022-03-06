@@ -93,8 +93,8 @@ namespace PeterDB {
 
         //project4 delete all index file
         vector<string> indexAttrs;
-        vector<RID> indexRids;
-        getIndexAttrsNameANDrid(tableName,indexAttrs,indexRids);
+
+        getIndexAttrsName(tableName,indexAttrs);
         for(string attr:indexAttrs)
         {
             RC rc= destroyIndex(tableName,attr);
@@ -143,11 +143,6 @@ namespace PeterDB {
         RC rc;
         RM_ScanIterator rm_ScanIterator;
         string indexFileName=tableName+"_"+attributeName+".idx";
-        // if index exist
-//        rc=ix->openFile(indexFileName,ixFileHandle);
-//        if(rc==0){return -1;}
-        rc=ix->createFile(indexFileName);
-        if(rc!=0){return -1;}
         // get attribute type
         vector<Attribute> attrs;
         Attribute thisAttr;
@@ -168,42 +163,53 @@ namespace PeterDB {
         if(rc!=0){return -1;}
 
         // scan and insert all index attr
+        FileHandle fileHandle;
+        IXFileHandle ixFileHandle;
+        rc=ix->createFile(indexFileName);
+        if(rc!=0){return -1;}
+
+
         vector<string> attributeNames;
         attributeNames.emplace_back(attributeName);
         scan(tableName,"",NO_OP, nullptr,attributeNames,rm_ScanIterator);
         void * data= malloc(PAGE_SIZE);
-        RID attributeRid;
-        while(rm_ScanIterator.getNextTuple(attributeRid,data)!=RM_EOF)
+        RID tupleRid;
+
+        while(rm_ScanIterator.getNextTuple(tupleRid,data)!=RM_EOF)
         {
-            FileHandle fileHandle;
-            IXFileHandle ixFileHandle;
             void *keyData = malloc(PAGE_SIZE);
-            void * attrData = malloc(PAGE_SIZE);
-            rc=rbfm->openFile(tableName,fileHandle);
             if(rc!=0){return -1;}
-            rc=rbfm->readAttribute(fileHandle,attrs,attributeRid,attributeName,attrData);
-            if(rc!=0){return -1;}
-            if(thisAttr.type==TypeVarChar) {
-                int varLength;
-                memcpy(&varLength, (char *) attrData + 1,4);
-                memcpy((char *)keyData,(char *) attrData + 1,4+varLength);
+            // check attr is null?
+            char * nullP=( char *) malloc(1);
+            memcpy(nullP,(char *) data,1);
+            bool isNull;
+            int bytePosition = 0 / 8;
+            int bitPosition = 0 % 8;
+            char b = nullP[bytePosition];
+            isNull=  ((b >> (7 - bitPosition)) & 0x1);
+            if(!isNull) {
+                if (thisAttr.type == TypeVarChar) {
+                    int varLength;
+                    memcpy(&varLength, (char *) data + 1, 4);
+                    memcpy((char *) keyData, (char *) data + 1, 4 + varLength);
+                } else {
+                    memcpy((char *) keyData, (char *) data + 1, 4);
+                }
+                rc = ix->openFile(indexFileName, ixFileHandle);
+                if (rc != 0) { return -1; }
+                rc = ix->insertEntry(ixFileHandle, thisAttr, keyData, tupleRid);
+                if (rc != 0) { return -1; }
+                rc = ix->closeFile(ixFileHandle);
+                if (rc != 0) { return -1; }
+                free(nullP);
             }else
             {
-                memcpy((char *)keyData,(char *)attrData + 1,4);
+                free(nullP);
+                return -1;
             }
-            rc=ix->openFile(indexFileName,ixFileHandle);
-            if(rc!=0){return -1;}
-            rc=ix->insertEntry(ixFileHandle,thisAttr,keyData,attributeRid);
-            if(rc!=0){return -1;}
-            rc=ix->closeFile(ixFileHandle);
-            if(rc!=0){return -1;}
-            rc=rbfm->closeFile(fileHandle);
-            if(rc!=0){return -1;}
             free(keyData);
-            free(attrData);
         }
         free(data);
-
         return 0;
     }
 
@@ -286,7 +292,7 @@ namespace PeterDB {
         return 0;
     }
 
-    RC RelationManager::getIndexAttrsNameANDrid(const std::string &tableName, std::vector<string> &indexAttrs,std::vector<RID> &indexRids)
+    RC RelationManager::getIndexAttrsName(const std::string &tableName, std::vector<string> &indexAttrs)
     {
         RID rid;
         int tableId= getTableId(tableName,rid);
@@ -306,7 +312,7 @@ namespace PeterDB {
             memcpy(&varcharLength,Pdata+1,4);
             attr=string(Pdata+5,varcharLength);
             indexAttrs.push_back(attr);
-            indexRids.push_back(rid);
+
         }
         free(data);
         rmScanIterator.close();
@@ -322,18 +328,17 @@ namespace PeterDB {
         getAttributes(tableName,recordDescriptor);
         rc=rbfm->insertRecord(fileHandle,recordDescriptor,data,rid);
         if(rc!=0){return -1;}
-        rc=rbfm->closeFile(fileHandle);
-        if(rc!=0){return -1;}
 
         // project4 insert associated index
-        if(tableName!="Tables"&&tableName!="Columns"&&tableName=="Indexs")
+        if(tableName!="Tables"&&tableName!="Columns"&&tableName!="Indexs")
         {
             vector<string> indexAttrs;
-            vector<RID> indexRids;
-            getIndexAttrsNameANDrid(tableName, indexAttrs,indexRids);
-            rc= updateIndex(tableName,indexAttrs,recordDescriptor,indexRids,0); //0 means insert update
+            getIndexAttrsName(tableName, indexAttrs);
+            rc= updateIndex(tableName,indexAttrs,recordDescriptor,0,rid); //0 means insert update
             if(rc!=0){return -1;}
         }
+        rc=rbfm->closeFile(fileHandle);
+        if(rc!=0){return -1;}
         return 0;
     }
 
@@ -346,12 +351,11 @@ namespace PeterDB {
         getAttributes(tableName,recordDescriptor);
 
         //project4 delete associated index
-        if(tableName!="Tables"&&tableName!="Columns"&&tableName=="Indexs")
+        if(tableName!="Tables"&&tableName!="Columns"&&tableName!="Indexs")
         {
             vector<string> indexAttrs;
-            vector<RID> indexRids;
-            getIndexAttrsNameANDrid(tableName, indexAttrs,indexRids);
-            rc= updateIndex(tableName,indexAttrs,recordDescriptor,indexRids,1); //1 means delete update
+            getIndexAttrsName(tableName, indexAttrs);
+            rc= updateIndex(tableName,indexAttrs,recordDescriptor,1,rid); //1 means delete update
             if(rc!=0){return -1;}
         }
 
@@ -431,7 +435,7 @@ namespace PeterDB {
     RC RelationManager::indexScan(const std::string &tableName, const std::string &attributeName, const void *lowKey,
                                   const void *highKey, bool lowKeyInclusive, bool highKeyInclusive,
                                   RM_IndexScanIterator &rm_IndexScanIterator) {
-        string indexFileName=tableName+'_'+attributeName;
+        string indexFileName=tableName+'_'+attributeName+".idx";
         RC rc= ix->openFile(indexFileName,rm_IndexScanIterator.ixFileHandle);
         if(rc!=0){return -1;}
 
@@ -476,7 +480,7 @@ namespace PeterDB {
     RC RM_IndexScanIterator::getNextEntry(RID &rid, void *key)
     {
         RC rc=ix_scanIterator.getNextEntry(rid,key);
-        if(rc==IX_EOF){return IX_EOF;}
+        if(rc==IX_EOF){return RM_EOF;}
         return 0;
     }
 
@@ -502,8 +506,8 @@ namespace PeterDB {
      {
         vector<string> attributeNames;
         attributeNames.emplace_back("table-id");
-         string condAttr = "";
-         CompOp compOp = NO_OP;
+        string condAttr = "";
+        CompOp compOp = NO_OP;
         RM_ScanIterator rm_scanIterator;
         scan("Tables",condAttr,compOp, nullptr,attributeNames,rm_scanIterator);
         int maxId=0;                      // Scan the Tables and get the total Id
@@ -547,7 +551,7 @@ namespace PeterDB {
     }
 
 
-    RC RelationManager::updateIndex(const string &tableName,std::vector<string> &indexAttrs, std::vector<Attribute> &attrs, std::vector<RID> &indexRids, int insertOrDelete)
+    RC RelationManager::updateIndex(const string &tableName,std::vector<string> &indexAttrs, std::vector<Attribute> &attrs, int insertOrDelete, const RID &rid)
     {
         for(Attribute attr: attrs) {
             for (int i=0;i<indexAttrs.size();i++) {
@@ -557,7 +561,7 @@ namespace PeterDB {
                     void *keyData = malloc(PAGE_SIZE);
                     void * attrData = malloc(PAGE_SIZE);
                     rbfm->openFile(tableName,fileHandle);
-                    RC rc=rbfm->readAttribute(fileHandle,attrs,indexRids[i],indexAttrs[i],attrData);
+                    RC rc=rbfm->readAttribute(fileHandle,attrs,rid,indexAttrs[i],attrData);
                     if(rc!=0){return -1;}
                     if(attr.type==TypeVarChar) {
                         int varLength;
@@ -571,12 +575,12 @@ namespace PeterDB {
                     rc=ix->openFile(indexFileName,ixFileHandle);
                     if(rc!=0){return -1;}
                     if(insertOrDelete==0) { //insert
-                        rc = ix->insertEntry(ixFileHandle, attr, keyData, indexRids[i]);
+                        rc = ix->insertEntry(ixFileHandle, attr, keyData, rid);
                         if(rc!=0){return -1;}
                     }
                     else if(insertOrDelete==1)
                     { // delete
-                        rc=ix->deleteEntry(ixFileHandle,attr,keyData,indexRids[i]);
+                        rc=ix->deleteEntry(ixFileHandle,attr,keyData,rid);
                         if(rc!=0){return -1;}
                     }
                     free(keyData);

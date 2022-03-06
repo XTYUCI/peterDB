@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include "rm.h"
 #include "ix.h"
@@ -167,6 +168,15 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC getFilterValue(std::vector<Attribute> &attrs,std::string filterName,void *filterValue,const void *tupleData);
+
+        bool isSatisfy(const void *filterValue);
+
+    private:
+        Iterator * input;
+        Condition condition;
+        vector<Attribute> filterAttrs;
     };
 
     class Project : public Iterator {
@@ -180,6 +190,12 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+        RC getProjectValues(const void* data,void * projectValues);
+
+    private:
+        Iterator * input;
+        vector<Attribute> projectAttrs;
+        vector<string> attrNames;
     };
 
     class BNLJoin : public Iterator {
@@ -198,6 +214,33 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC getNextBlock();
+
+        RC getAttrOffsetAndTupleLength(std::vector<Attribute> &attrs,std::string filterName,void *filterValue,const void *tupleData,int & tupleLength,AttrType &filterType);
+
+        RC mergeDatas(const void * leftValue,const void * rightValue,void * data,std::vector<Attribute> &leftAttrs,std::vector<Attribute> &rightAttrs);
+
+        RC cleanBlock();
+    private:
+        Iterator * leftInput;
+        TableScan * rightInput;
+        Condition condition;
+        unsigned numPages;
+        vector<Attribute> leftAttrs;
+        vector<Attribute> rightAttrs;
+        int curBlockSize;
+        void * blockBuffer;
+        void * leftTupleBuffer;
+        void * rightTupleBuffer;
+        unordered_map<int,vector<int> > intHashTable;
+        unordered_map<float,vector<int> > realHashTable;
+        unordered_map<string,vector<int> > varcharHashTable;
+        int tupleOffsetArrayCount;
+        bool scanNextRightTuple;
+        bool rightTableScanEnd;
+        bool leftTableScanEnd;
+        bool blockLoaded;
     };
 
     class INLJoin : public Iterator {

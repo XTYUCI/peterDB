@@ -769,10 +769,6 @@ namespace PeterDB {
                 {
                     bool no_opCheck=false;
                     if(conditionAttrName=="" && compOp==NO_OP){
-                        /*rid.slotNum=tempRid.slotNum;
-                        rid.pageNum=tempRid.pageNum;
-                        tempRid.slotNum+=1;
-                        free(pageData);*/
                         no_opCheck= true;
                     }
                     void * conditionAttrData= malloc(100);

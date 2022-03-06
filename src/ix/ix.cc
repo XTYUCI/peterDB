@@ -64,7 +64,8 @@ namespace PeterDB {
             memcpy(Pdata,key,keySize);
             memcpy(Pdata+keySize,&rid.pageNum,sizeof(unsigned ));
             memcpy(Pdata+keySize+sizeof(unsigned ),&rid.slotNum,sizeof(short));
-
+            int p=-1;
+            memcpy(Pdata+ PAGE_SIZE - 10, &p, 4);
             appendAndWriteLeafPage(ixFileHandle,-1,totalPageNums+1,data,1,keySize,keySize+sizeof(unsigned)+sizeof(short),attribute);
             free(data);
             return 0;
@@ -536,6 +537,7 @@ namespace PeterDB {
                 if(currentPointer>0) {
                     memcpy(Phalf + PAGE_SIZE - 10, &currentPointer, 4);
                 }
+                if(currentPointer==-1){memcpy(Phalf + PAGE_SIZE - 10, &currentPointer, 4);}
                 // 1 split right
             }else  // insert part in left
             {
@@ -592,6 +594,7 @@ namespace PeterDB {
                 if(currentPointer>0) {
                     memcpy(Phalf + PAGE_SIZE - 10, &currentPointer, 4);
                 }
+                if(currentPointer==-1){memcpy(Phalf + PAGE_SIZE - 10, &currentPointer, 4);}
                // 0 split left
             }
 
