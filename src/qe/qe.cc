@@ -839,7 +839,6 @@ namespace PeterDB {
                     return QE_EOF;
                 }
 
-//
         }
     }
 
@@ -927,7 +926,7 @@ namespace PeterDB {
         char * Pright=(char *)rightValue;
         char * Pdata=(char *)data;
         //left null
-        int leftFields=rightAttrs.size();
+        int leftFields=leftAttrs.size();
         int leftNullBytesLen = ceil(leftFields / 8)+1;
         char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
         memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
