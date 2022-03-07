@@ -70,6 +70,7 @@ namespace PeterDB {
                         memcpy(Pfilter,Ptuple+curOffset,4);
                         curOffset+=4;
                     }
+                    free(nullIndicator);
                     return 0;
                 }
                 else
@@ -889,6 +890,7 @@ namespace PeterDB {
                         memcpy(Pfilter,Ptuple+curOffset,4);
                         curOffset+=4;
                     }
+                    free(nullIndicator);
                     return 0;
                 }
                 else
@@ -1192,6 +1194,7 @@ namespace PeterDB {
                         memcpy(Pfilter,Ptuple+curOffset,4);
                         curOffset+=4;
                     }
+                    free(nullIndicator);
                     return 0;
                 }
                 else
