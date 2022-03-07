@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <float.h>
 
 #include "rm.h"
 #include "ix.h"
@@ -257,6 +258,20 @@ namespace PeterDB {
 
         // For attribute in std::vector<Attribute>, name it as rel.attr
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC mergeDatas(const void * leftValue,const void * rightValue,void * data,std::vector<Attribute> &leftAttrs,std::vector<Attribute> &rightAttrs);
+
+        RC getFilterValue(std::vector<Attribute> &attrs,std::string filterName,void *filterValue,const void *tupleData);
+
+    private:
+        Iterator * leftInput;
+        IndexScan * rightInput;
+        Condition condition;
+        vector<Attribute> leftAttrs;
+        vector<Attribute> rightAttrs;
+        void * leftTupleBuffer;
+        void * rightTupleBuffer;
+        bool leftTableScanEnd;
     };
 
     // 10 extra-credit points
@@ -303,6 +318,22 @@ namespace PeterDB {
         // E.g. Relation=rel, attribute=attr, aggregateOp=MAX
         // output attrName = "MAX(rel.attr)"
         RC getAttributes(std::vector<Attribute> &attrs) const override;
+
+        RC getFilterValue(std::vector<Attribute> &attrs,std::string filterName,void *filterValue,const void *tupleData);
+    private:
+        Iterator * aggInput;
+        Attribute aggAttr;
+        AggregateOp op;
+        vector<Attribute> attrs;
+        void * tupleBuffer;
+        float maxFloat;
+        float minFloat;
+        float sumFloat;
+        float avg;
+        float count;
+        bool hasReturnAgg;
+        bool firstRun;
+
     };
 } // namespace PeterDB
 

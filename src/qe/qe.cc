@@ -798,19 +798,221 @@ namespace PeterDB {
 
 
     INLJoin::INLJoin(Iterator *leftIn, IndexScan *rightIn, const Condition &condition) {
-        
+        this->leftInput=leftIn;
+        this->rightInput=rightIn;
+        this->condition=condition;
+        this->leftInput->getAttributes(leftAttrs);
+        this->rightInput->getAttributes(rightAttrs);
+        this->leftTupleBuffer= malloc(PAGE_SIZE);
+        this->rightTupleBuffer= malloc(PAGE_SIZE);
+        this->leftTableScanEnd=false;
+
     }
 
     INLJoin::~INLJoin() {
-
+        free(leftTupleBuffer);
+        free(rightTupleBuffer);
     }
 
     RC INLJoin::getNextTuple(void *data) {
-        return -1;
+        while(leftTableScanEnd== false) { // stop when left table scan end
+
+                if(leftInput->getNextTuple(leftTupleBuffer) != RM_EOF) {
+                    void *leftAttrValue = malloc(PAGE_SIZE);
+                    RC rc = getFilterValue(leftAttrs, condition.lhsAttr, leftAttrValue, leftTupleBuffer);
+                    if (rc != 0) {
+                        free(leftAttrValue);
+                        return -1;
+                    }
+                    rightInput->setIterator(leftAttrValue, leftAttrValue, true, true);
+                    if(rightInput->getNextTuple(rightTupleBuffer)!=IX_EOF)
+                    {
+                        // find the right tuple through index
+
+                        mergeDatas(leftTupleBuffer,rightTupleBuffer,data,leftAttrs,rightAttrs);
+                        free(leftAttrValue);
+                        return 0;
+                    }
+                }else
+                {
+                    leftTableScanEnd= true;
+                    return QE_EOF;
+                }
+
+//
+        }
     }
 
     RC INLJoin::getAttributes(std::vector<Attribute> &attrs) const {
+        attrs.clear();
+        for(Attribute attr:leftAttrs)
+        {
+            attrs.push_back(attr);
+        }
+        for(Attribute attr:rightAttrs)
+        {
+            attrs.push_back(attr);
+        }
+        return 0;
+    }
+
+    RC INLJoin::getFilterValue(std::vector<Attribute> &attrs, std::string filterName, void *filterValue,
+                               const void *tupleData)
+    {
+        char * Pfilter=(char *)filterValue;
+        char * Ptuple=(char *)tupleData;
+        int fields=attrs.size();
+        int nullBytesLen = ceil(fields / 8)+1;
+        char * nullIndicator = (char*)malloc(nullBytesLen);
+        memcpy(nullIndicator,Ptuple,nullBytesLen);
+        bool isNull;// check attr is null
+        short curOffset=nullBytesLen;
+        for(int i=0;i<fields;i++)
+        {
+            int bytePosition = i / 8;
+            int bitPosition = i % 8;
+            char b = nullIndicator[bytePosition];
+            isNull=  ((b >> (7 - bitPosition)) & 0x1);
+            if(attrs[i].name==filterName)
+            {
+                if(!isNull)
+                {
+                    if(attrs[i].type==TypeVarChar)
+                    {
+                        int varLength;
+                        memcpy(&varLength,Ptuple+curOffset,4);
+                        memcpy(Pfilter,&varLength,4);
+                        curOffset+=4;
+                        memcpy(Pfilter+4,Ptuple+curOffset,varLength);
+                        curOffset+=varLength;
+                    }else
+                    {
+                        memcpy(Pfilter,Ptuple+curOffset,4);
+                        curOffset+=4;
+                    }
+                    return 0;
+                }
+                else
+                {
+                    continue;
+                }
+            }else // just increase curOffset
+            {
+                if(!isNull)
+                {
+                    if(attrs[i].type==TypeVarChar)
+                    {
+                        int varLength;
+                        memcpy(&varLength,Ptuple+curOffset,4);
+                        curOffset+=4;
+                        curOffset+=varLength;
+                    }else
+                    {
+                        curOffset+=4;
+                    }
+                }else
+                {
+                    continue;
+                }
+            }
+        }
+        free(nullIndicator);
         return -1;
+    }
+
+    RC INLJoin::mergeDatas(const void *leftValue, const void *rightValue, void *data, std::vector<Attribute> &leftAttrs,
+                           std::vector<Attribute> &rightAttrs)
+    {
+        char * Pleft=(char *)leftValue;
+        char * Pright=(char *)rightValue;
+        char * Pdata=(char *)data;
+        //left null
+        int leftFields=rightAttrs.size();
+        int leftNullBytesLen = ceil(leftFields / 8)+1;
+        char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
+        memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
+        bool isNullleft;// check attr is null
+        int leftCurOffset=leftNullBytesLen;
+        // right null
+        int rightFields=rightAttrs.size();
+        int rightNullBytesLen = ceil(rightFields / 8)+1;
+        char * rightNullIndicator = (char*)malloc(rightNullBytesLen);
+        memcpy(rightNullIndicator,Pright,rightNullBytesLen);
+        bool isNullright;// check attr is null
+        int rightCurOffset=rightNullBytesLen;
+        //data null
+        int dataFields=this->leftAttrs.size()+this->rightAttrs.size();
+        int dataNullBytesLen = ceil(dataFields / 8)+1;
+        char * dataNullIndicator = (char*)malloc(dataNullBytesLen);
+        memset(dataNullIndicator,0, dataNullBytesLen);
+        int dataCurOffset=dataNullBytesLen;
+        for(int i=0;i<leftFields;i++)
+        {
+            int bytePosition = i / 8;
+            int bitPosition = i % 8;
+            char b = leftNullIndicator[bytePosition];
+            isNullleft=  ((b >> (7 - bitPosition)) & 0x1);
+            if(isNullleft)
+            {
+                int byteIndex = i / 8;
+                int bitIndex = i % 8;
+                dataNullIndicator[byteIndex] += pow(2, 7-bitIndex);
+            }else
+            {
+                if(leftAttrs[i].type==TypeVarChar)
+                {
+                    int varLength;
+                    memcpy(&varLength,Pleft+leftCurOffset,4);
+                    memcpy(Pdata+dataCurOffset,&varLength,4);
+                    leftCurOffset+=4;
+                    dataCurOffset+=4;
+                    memcpy(Pdata+dataCurOffset,Pleft+leftCurOffset,varLength);
+                    leftCurOffset+=varLength;
+                    dataCurOffset+=varLength;
+                }else
+                {
+                    memcpy(Pdata+dataCurOffset,Pleft+leftCurOffset,4);
+                    leftCurOffset+=4;
+                    dataCurOffset+=4;
+                }
+            }
+        }
+        for(int i=0;i<rightFields;i++)
+        {
+            int bytePosition = i / 8;
+            int bitPosition = i % 8;
+            char b = leftNullIndicator[bytePosition];
+            isNullright=  ((b >> (7 - bitPosition)) & 0x1);
+            if(isNullright)
+            {
+                int byteIndex = (i+leftFields) / 8;
+                int bitIndex = (i+leftFields) % 8;
+                dataNullIndicator[byteIndex] += pow(2, 7-bitIndex);
+            }else
+            {
+                if(rightAttrs[i].type==TypeVarChar)
+                {
+                    int varLength;
+                    memcpy(&varLength,Pright+rightCurOffset,4);
+                    memcpy(Pdata+dataCurOffset,&varLength,4);
+                    rightCurOffset+=4;
+                    dataCurOffset+=4;
+                    memcpy(Pdata+dataCurOffset,Pright+rightCurOffset,varLength);
+                    rightCurOffset+=varLength;
+                    dataCurOffset+=varLength;
+                }else
+                {
+                    memcpy(Pdata+dataCurOffset,Pright+rightCurOffset,4);
+                    rightCurOffset+=4;
+                    dataCurOffset+=4;
+                }
+            }
+        }
+
+        memcpy(Pdata,dataNullIndicator,dataNullBytesLen);
+        free(leftNullIndicator);
+        free(rightNullIndicator);
+        free(dataNullIndicator);
     }
 
     GHJoin::GHJoin(Iterator *leftIn, Iterator *rightIn, const Condition &condition, const unsigned int numPartitions) {
@@ -830,7 +1032,16 @@ namespace PeterDB {
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, AggregateOp op) {
-
+        this->aggInput=input;
+        this->aggAttr=aggAttr;
+        this->op=op;
+        this->aggInput->getAttributes(this->attrs);
+        this->tupleBuffer= malloc(PAGE_SIZE);
+        sumFloat=0;
+        avg=0;
+        count=0;
+        hasReturnAgg=false;
+        firstRun= true;
     }
 
     Aggregate::Aggregate(Iterator *input, const Attribute &aggAttr, const Attribute &groupAttr, AggregateOp op) {
@@ -838,14 +1049,178 @@ namespace PeterDB {
     }
 
     Aggregate::~Aggregate() {
+        free(tupleBuffer);
 
     }
 
     RC Aggregate::getNextTuple(void *data) {
-        return -1;
+        if(hasReturnAgg== true){return QE_EOF;}
+        while(this->aggInput->getNextTuple(tupleBuffer)!=RM_EOF)
+        {
+            void * filterValue= malloc(4);
+            RC rc= getFilterValue(attrs,aggAttr.name,filterValue,tupleBuffer);
+            if(rc!=0)
+            {
+                free(filterValue);
+                return QE_EOF;
+            }
+            float fltValue=0;
+            if(aggAttr.type==TypeInt)
+            {
+                int intValue;
+                memcpy(&intValue,(char *)filterValue,4);
+                fltValue= intValue;
+            }else if(aggAttr.type==TypeReal) {
+                memcpy(&fltValue, (char *) filterValue, 4);
+            }
+            if(firstRun)
+            {
+                maxFloat=fltValue;
+                minFloat=fltValue;
+                firstRun= false;
+            }
+            if(fltValue>=maxFloat&&firstRun== false)
+            {
+                maxFloat=fltValue;
+            }
+            if(fltValue<=minFloat&&firstRun== false)
+            {
+                minFloat=fltValue;
+            }
+            count+=1;
+            sumFloat+=fltValue;
+            free(filterValue);
+        }
+        avg=sumFloat/count;
+        // put result to data
+        int nullBytesLen = 1;
+        char * nullIndicator = (char*)malloc(nullBytesLen);
+        memset(nullIndicator, 0, nullBytesLen);
+        memcpy((char *)data,nullIndicator,nullBytesLen);
+
+        float result;
+        switch (op) {
+            case MIN:
+            {
+                result=minFloat;
+                break;
+            }
+            case MAX:
+            {
+                result=maxFloat;
+                break;
+            }
+            case COUNT:
+            {
+                result=count;
+                break;
+            }
+            case SUM:
+            {
+                result=sumFloat;
+                break;
+            }
+            case AVG:
+            {
+                result=avg;
+                break;
+            }
+        }
+        memcpy((char *)data+nullBytesLen,&result,4);
+        hasReturnAgg= true;
+        return 0;
     }
 
     RC Aggregate::getAttributes(std::vector<Attribute> &attrs) const {
+        attrs.clear();
+        Attribute attr;
+        attr=this->aggAttr;
+        string opName;
+        switch (op) {
+            case MIN:
+                opName="MIN";
+                break;
+            case MAX:
+                opName="MAX";
+                break;
+            case COUNT:
+                opName="COUNT";
+                break;
+            case SUM:
+                opName="SUM";
+                break;
+            case AVG:
+                opName="AVG";
+                break;
+        }
+        attr.name=opName+'('+this->aggAttr.name+')';
+        attr.type = TypeReal;
+        attrs.push_back(attr);
+        return 0;
+    }
+
+    RC Aggregate::getFilterValue(std::vector<Attribute> &attrs, std::string filterName, void *filterValue,
+                                 const void *tupleData)
+    {
+        char * Pfilter=(char *)filterValue;
+        char * Ptuple=(char *)tupleData;
+        int fields=attrs.size();
+        int nullBytesLen = ceil(fields / 8)+1;
+        char * nullIndicator = (char*)malloc(nullBytesLen);
+        memcpy(nullIndicator,Ptuple,nullBytesLen);
+        bool isNull;// check attr is null
+        short curOffset=nullBytesLen;
+        for(int i=0;i<fields;i++)
+        {
+            int bytePosition = i / 8;
+            int bitPosition = i % 8;
+            char b = nullIndicator[bytePosition];
+            isNull=  ((b >> (7 - bitPosition)) & 0x1);
+            if(attrs[i].name==filterName)
+            {
+                if(!isNull)
+                {
+                    if(attrs[i].type==TypeVarChar)
+                    {
+                        int varLength;
+                        memcpy(&varLength,Ptuple+curOffset,4);
+                        memcpy(Pfilter,&varLength,4);
+                        curOffset+=4;
+                        memcpy(Pfilter+4,Ptuple+curOffset,varLength);
+                        curOffset+=varLength;
+                    }else
+                    {
+                        memcpy(Pfilter,Ptuple+curOffset,4);
+                        curOffset+=4;
+                    }
+                    return 0;
+                }
+                else
+                {
+                    continue;
+                }
+            }else // just increase curOffset
+            {
+                if(!isNull)
+                {
+                    if(attrs[i].type==TypeVarChar)
+                    {
+                        int varLength;
+                        memcpy(&varLength,Ptuple+curOffset,4);
+                        curOffset+=4;
+                        curOffset+=varLength;
+                    }else
+                    {
+                        curOffset+=4;
+                    }
+                }else
+                {
+                    continue;
+                }
+            }
+        }
+        free(nullIndicator);
         return -1;
     }
+
 } // namespace PeterDB
