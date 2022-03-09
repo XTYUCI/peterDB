@@ -2,7 +2,7 @@
 #include "test/utils/pfm_test_utils.h"
 
 namespace PeterDBTesting {
-    /**
+
     TEST_F (PFM_File_Test, create_file) {
 
         ASSERT_FALSE (fileExists(fileName)) << "The file should not exist now: " << fileName;
@@ -299,5 +299,5 @@ namespace PeterDBTesting {
         ASSERT_EQ(memcmp(inBuffer, outBuffer, PAGE_SIZE), 0) << "Checking the integrity of a page should succeed.";
 
     }
-     **/
+
 } // namespace PeterDBTesting

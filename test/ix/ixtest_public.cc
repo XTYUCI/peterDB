@@ -4,7 +4,7 @@
 #include "test/utils/ix_test_utils.h"
 
 namespace PeterDBTesting {
-/**
+
     TEST_F(IX_File_Test, create_open_close_destory_index) {
         // Functions tested
         // 1. Create Index File
@@ -872,5 +872,5 @@ namespace PeterDBTesting {
         validateTree(stream, 12, 12, 1, 2);
 
     }
-    **/
+
 } // namespace PeterDBTesting
