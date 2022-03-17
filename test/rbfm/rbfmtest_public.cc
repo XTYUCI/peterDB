@@ -28,7 +28,6 @@ namespace PeterDBTesting {
 
         std::ostringstream stream;
         rbfm.printRecord(recordDescriptor, inBuffer, stream);
-
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: 25, Height: 177.8, Salary: 6200", stream.str()));
 
@@ -42,7 +41,6 @@ namespace PeterDBTesting {
         stream.str(std::string());
         stream.clear();
         rbfm.printRecord(recordDescriptor, outBuffer, stream);
-
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: 25, Height: 177.8, Salary: 6200", stream.str()));
 
@@ -81,7 +79,6 @@ namespace PeterDBTesting {
 
         std::ostringstream stream;
         rbfm.printRecord(recordDescriptor, inBuffer, stream);
-
         ASSERT_NO_FATAL_FAILURE(
                 checkPrintRecord("EmpName: Anteater, Age: NULL, Height: 177.8, Salary: NULL", stream.str()));
 
@@ -100,9 +97,6 @@ namespace PeterDBTesting {
 
         // Compare whether the two memory blocks are the same
         ASSERT_EQ(memcmp(inBuffer, outBuffer, recordSize), 0) << "the read data should match the inserted data";
-
-
-
 
     }
 
@@ -154,9 +148,8 @@ namespace PeterDBTesting {
         ASSERT_EQ(rids.size(), numRecords) << "Reading records should succeed.";
         ASSERT_EQ(sizes.size(), (unsigned) numRecords) << "Reading records should succeed.";
 
-
         outBuffer = malloc(1000);
-        //read  ............
+
         for (int i = 0; i < numRecords; i++) {
             memset(inBuffer, 0, 1000);
             memset(outBuffer, 0, 1000);
@@ -167,12 +160,10 @@ namespace PeterDBTesting {
                 std::ostringstream stream;
                 rbfm.printRecord(recordDescriptor, outBuffer, stream);
                 GTEST_LOG_(INFO) << "Returned Data: " << stream.str();
-
             }
 
             int size = 0;
             prepareLargeRecord(recordDescriptor.size(), nullsIndicator, i, inBuffer, &size);
-
             ASSERT_EQ(memcmp(outBuffer, inBuffer, sizes[i]), 0) << "the read data should match the inserted data";
         }
 
@@ -274,10 +265,8 @@ namespace PeterDBTesting {
 
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
-
         // save the returned RID
         PeterDB::RID rid0 = rid;
-
 
         free(nullsIndicator);
         nullsIndicator = initializeNullFieldsIndicator(recordDescriptor);
@@ -291,15 +280,11 @@ namespace PeterDBTesting {
         // Insert three copies
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
-
         // save the returned RID
         PeterDB::RID rid1 = rid;
 
-
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
-
-
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
 
@@ -327,7 +312,6 @@ namespace PeterDBTesting {
         // Reinsert a record
         ASSERT_EQ(rbfm.insertRecord(fileHandle, recordDescriptor, inBuffer, rid), success)
                                     << "Inserting a record should succeed.";
-
         ASSERT_EQ(rid.slotNum, rid0.slotNum) << "Inserted record should use previous deleted slot.";
 
         // Given the rid, read the record from file
@@ -415,7 +399,6 @@ namespace PeterDBTesting {
         // verify the short record has been deleted
         ASSERT_NE(rbfm.readRecord(fileHandle, recordDescriptor, shortRID, outBuffer), success)
                                     << "Read a deleted record should not success.";
-
     }
 
 }// namespace PeterDBTesting
