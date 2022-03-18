@@ -4,7 +4,6 @@
 #include "test/utils/ix_test_utils.h"
 
 namespace PeterDBTesting {
-
     TEST_F(IX_File_Test, create_open_close_destory_index) {
         // Functions tested
         // 1. Create Index File
@@ -620,9 +619,10 @@ namespace PeterDBTesting {
         for (unsigned i = 0; i < numOfMoreEntries; i++) {
             memset(key, 0, 1004);
             prepareKeyAndRid(testedAscii, key, rid);
-            rid.slotNum = rid.pageNum + 1;
+            rid.slotNum = rid.pageNum + i + 1;
             ASSERT_EQ(ix.insertEntry(ixFileHandle, empNameAttr, &key, rid), success)
                                         << "indexManager::insertEntry() should succeed.";
+
             rids.emplace_back(rid);
         }
 
@@ -639,7 +639,6 @@ namespace PeterDBTesting {
         // collect counter
         ASSERT_EQ(ixFileHandle.collectCounterValues(rc, wc, ac), success)
                                     << "indexManager::collectCounterValues() should succeed.";
-
 
         // Scan
         memset(key, 0, 100);
