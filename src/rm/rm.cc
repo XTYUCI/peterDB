@@ -374,8 +374,28 @@ namespace PeterDB {
 
         vector<Attribute> recordDescriptor;
         getAttributes(tableName,recordDescriptor);
+
+        //project4 delete associated index
+        if(tableName!="Tables"&&tableName!="Columns"&&tableName!="Indexs")
+        {
+            vector<string> indexAttrs;
+            getIndexAttrsName(tableName, indexAttrs);
+            rc= updateIndex(tableName,indexAttrs,recordDescriptor,1,rid); //1 means delete update
+            if(rc!=0){return -1;}
+        }
+
         rc=rbfm->updateRecord(fileHandle,recordDescriptor,data,rid);
         if(rc!=0){return -1;}
+
+        // project4 insert associated index
+        if(tableName!="Tables"&&tableName!="Columns"&&tableName!="Indexs")
+        {
+            vector<string> indexAttrs;
+            getIndexAttrsName(tableName, indexAttrs);
+            rc= updateIndex(tableName,indexAttrs,recordDescriptor,0,rid); //0 means insert update
+            if(rc!=0){return -1;}
+        }
+
         rc=rbfm->closeFile(fileHandle);
         if(rc!=0){return -1;}
         return 0;

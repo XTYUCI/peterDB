@@ -16,6 +16,7 @@ namespace PeterDB {
         {
             void * filterValue= malloc(PAGE_SIZE);
             RC rc= getFilterValue(filterAttrs,condition.lhsAttr,filterValue,data);
+            if(rc==-3 ){continue;}
             if(rc!=0){
                 free(filterValue);
                 return -1;}
@@ -75,7 +76,7 @@ namespace PeterDB {
                 }
                 else
                 {
-                    continue;
+                    return -3;
                 }
             }else // just increase curOffset
             {
