@@ -298,5 +298,4 @@ namespace PeterDBTesting {
         ASSERT_EQ(memcmp(inBuffer, outBuffer, PAGE_SIZE), 0) << "Checking the integrity of a page should succeed.";
 
     }
-
 } // namespace PeterDBTesting
