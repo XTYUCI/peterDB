@@ -427,20 +427,12 @@ namespace PeterDBTesting {
 
             if ((nullsIndicator[0] >> (7u - attrID)) & 1u) {
 
-
                 EXPECT_EQ(*((unsigned char *) outBuffer), 128u)
 
                                     << "returned " << attributeName << " field should be null";
             } else {
                 if (attributeName == "tweet_id") {
 
-
-                    ASSERT_EQ(memcmp(((char *) outBuffer + 1), &tweet.tweet_id, sizeof(unsigned)), 0)
-                                        << "returned tweet_id field is not correct.";
-
-                } else if (attributeName == "text") {
-                    ASSERT_EQ(*(unsigned *) ((char *) outBuffer + 1), tweet.text.length())
-                                        << "returned text field length is not correct.";
 
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1), &tweet.tweet_id, sizeof(unsigned)), 0)
                                         << "returned tweet_id field is not correct.";
@@ -455,16 +447,6 @@ namespace PeterDBTesting {
 
                 } else if (attributeName == "user_id") {
 
-                    ASSERT_EQ(memcmp(((char *) outBuffer + 1), &tweet.user_id, sizeof(unsigned)), 0)
-                                        << "returned user_id field is not correct.";
-
-                } else if (attributeName == "sentiment") {
-                    ASSERT_EQ(memcmp(((char *) outBuffer + 1), &tweet.sentiment, sizeof(float)), 0)
-                                        << "returned sentiment field is not correct.";
-
-                } else if (attributeName == "hash_tags") {
-                    ASSERT_EQ(*(unsigned *) ((char *) outBuffer + 1), tweet.hash_tags.length())
-                                        << "returned hash_tags field length is not correct.";
 
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1), &tweet.user_id, sizeof(unsigned)), 0)
                                         << "returned user_id field is not correct.";
@@ -483,9 +465,6 @@ namespace PeterDBTesting {
 
                 } else if (attributeName == "embedded_url") {
 
-                    ASSERT_EQ(*(unsigned *) ((char *) outBuffer + 1), tweet.embedded_url.length())
-                                        << "returned embedded_url field length is not correct.";
-
                     EXPECT_EQ(*(unsigned *) ((char *) outBuffer + 1), tweet.embedded_url.length())
                                         << "returned embedded_url field length is not correct.";
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1 + sizeof(unsigned)), tweet.embedded_url.c_str(),
@@ -495,10 +474,6 @@ namespace PeterDBTesting {
 
                 } else if (attributeName == "lat") {
 
-                    ASSERT_EQ(memcmp(((char *) outBuffer + 1), &tweet.lat, sizeof(float)), 0)
-                                        << "returned lat field is not correct.";
-
-                } else if (attributeName == "lng") {
 
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1), &tweet.lat, sizeof(float)), 0)
                                         << "returned lat field is not correct.";

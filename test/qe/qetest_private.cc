@@ -17,7 +17,9 @@ namespace PeterDBTesting {
         createAndPopulateTable(tableName, {"A", "B", "C"}, 25);
 
         // update a tuple: 10 updates to 100
-        prepareLeftTuple(nullsIndicator, 100, inBuffer);
+
+        prepareLeftTuple(nullsIndicator, 90, inBuffer);
+
         rm.updateTuple("left", inBuffer, rids[0]);
 
         // delete two tuples: 13 and 14 are removed
@@ -25,7 +27,9 @@ namespace PeterDBTesting {
         rm.deleteTuple("left", rids[4]);
 
         // update a tuple: 11 updates to 13
-        prepareLeftTuple(nullsIndicator, 13, inBuffer);
+
+        prepareLeftTuple(nullsIndicator, 3, inBuffer);
+
         rm.updateTuple("left", inBuffer, rids[1]);
 
         int compVal = 15;
@@ -219,7 +223,9 @@ namespace PeterDBTesting {
 
         // Set up condition
         unsigned compVal = 10;
-        PeterDB::Condition cond{"right.D", PeterDB::LT_OP, false, "", {PeterDB::TypeReal, data1}};
+
+        PeterDB::Condition cond{"right.D", PeterDB::LT_OP, false, "", {PeterDB::TypeInt, data1}};
+
         *(unsigned *) cond.rhsValue.data = compVal;
 
         // Create Filter
@@ -228,7 +234,9 @@ namespace PeterDBTesting {
 
         // Create another Filter
         unsigned compVal2 = 25;
-        PeterDB::Condition cond2{"right.B", PeterDB::LE_OP, false, "", {PeterDB::TypeReal, data2}};
+
+        PeterDB::Condition cond2{"right.B", PeterDB::LE_OP, false, "", {PeterDB::TypeInt, data2}};
+
         *(unsigned *) cond2.rhsValue.data = compVal2;
         PeterDB::Filter filter2(&filter, cond2);
 
