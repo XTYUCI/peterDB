@@ -42,7 +42,7 @@ namespace PeterDB {
         char * Pfilter=(char *)filterValue;
         char * Ptuple=(char *)tupleData;
         int fields=attrs.size();
-        int nullBytesLen = ceil(fields / 8)+1;
+        int nullBytesLen =ceil((double )fields / 8);   // null bytes;
         char * nullIndicator = (char*)malloc(nullBytesLen);
         memcpy(nullIndicator,Ptuple,nullBytesLen);
         bool isNull;// check attr is null
@@ -244,13 +244,13 @@ namespace PeterDB {
         char * Pproject=(char *)projectValues;
         char * Pdata=(char *)data;
         int fields=projectAttrs.size();
-        int nullBytesLen = ceil(fields / 8)+1;
+        int nullBytesLen = ceil((double )fields / 8);   // null bytes;
         char * nullIndicator = (char*)malloc(nullBytesLen);
         memcpy(nullIndicator,Pproject,nullBytesLen);
         bool isNull;// check attr is null
 
         int projectFields=this->attrNames.size();
-        int projectNullBytesLen = ceil(projectFields / 8)+1;
+        int projectNullBytesLen = ceil((double )projectFields / 8);   // null bytes;
         char * projectNullIndicator = (char*)malloc(projectNullBytesLen);
         memset(projectNullIndicator,0, projectNullBytesLen);
         // project null check to fill
@@ -631,7 +631,7 @@ namespace PeterDB {
         char * Pfilter=(char *)filterValue;
         char * Ptuple=(char *)tupleData;
         int fields=attrs.size();
-        int nullBytesLen = ceil(fields / 8)+1;
+        int nullBytesLen = ceil((double )fields / 8);   // null bytes;
         char * nullIndicator = (char*)malloc(nullBytesLen);
         memcpy(nullIndicator,Ptuple,nullBytesLen);
         bool isNull;// check attr is null
@@ -702,21 +702,21 @@ namespace PeterDB {
         char * Pdata=(char *)data;
         //left null
         int leftFields=rightAttrs.size();
-        int leftNullBytesLen = ceil(leftFields / 8)+1;
+        int leftNullBytesLen = ceil((double )leftFields / 8);   // null bytes;
         char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
         memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
         bool isNullleft;// check attr is null
         int leftCurOffset=leftNullBytesLen;
         // right null
         int rightFields=rightAttrs.size();
-        int rightNullBytesLen = ceil(rightFields / 8)+1;
+        int rightNullBytesLen = ceil((double )rightFields / 8);   // null bytes;
         char * rightNullIndicator = (char*)malloc(rightNullBytesLen);
         memcpy(rightNullIndicator,Pright,rightNullBytesLen);
         bool isNullright;// check attr is null
         int rightCurOffset=rightNullBytesLen;
         //data null
         int dataFields=this->leftAttrs.size()+this->rightAttrs.size();
-        int dataNullBytesLen = ceil(dataFields / 8)+1;
+        int dataNullBytesLen = ceil((double )dataFields / 8);   // null bytes;
         char * dataNullIndicator = (char*)malloc(dataNullBytesLen);
         memset(dataNullIndicator,0, dataNullBytesLen);
         int dataCurOffset=dataNullBytesLen;
@@ -862,7 +862,7 @@ namespace PeterDB {
         char * Pfilter=(char *)filterValue;
         char * Ptuple=(char *)tupleData;
         int fields=attrs.size();
-        int nullBytesLen = ceil(fields / 8)+1;
+        int nullBytesLen = ceil((double )fields / 8);   // null bytes;
         char * nullIndicator = (char*)malloc(nullBytesLen);
         memcpy(nullIndicator,Ptuple,nullBytesLen);
         bool isNull;// check attr is null
@@ -929,21 +929,21 @@ namespace PeterDB {
         char * Pdata=(char *)data;
         //left null
         int leftFields=leftAttrs.size();
-        int leftNullBytesLen = ceil(leftFields / 8)+1;
+        int leftNullBytesLen = ceil((double )leftFields / 8);   // null bytes;
         char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
         memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
         bool isNullleft;// check attr is null
         int leftCurOffset=leftNullBytesLen;
         // right null
         int rightFields=rightAttrs.size();
-        int rightNullBytesLen = ceil(rightFields / 8)+1;
+        int rightNullBytesLen = ceil((double )rightFields / 8);   // null bytes;
         char * rightNullIndicator = (char*)malloc(rightNullBytesLen);
         memcpy(rightNullIndicator,Pright,rightNullBytesLen);
         bool isNullright;// check attr is null
         int rightCurOffset=rightNullBytesLen;
         //data null
         int dataFields=this->leftAttrs.size()+this->rightAttrs.size();
-        int dataNullBytesLen = ceil(dataFields / 8)+1;
+        int dataNullBytesLen = ceil((double )dataFields / 8);   // null bytes;
         char * dataNullIndicator = (char*)malloc(dataNullBytesLen);
         memset(dataNullIndicator,0, dataNullBytesLen);
         int dataCurOffset=dataNullBytesLen;
@@ -1166,7 +1166,7 @@ namespace PeterDB {
         char * Pfilter=(char *)filterValue;
         char * Ptuple=(char *)tupleData;
         int fields=attrs.size();
-        int nullBytesLen = ceil(fields / 8)+1;
+        int nullBytesLen = ceil((double )fields / 8);   // null bytes;
         char * nullIndicator = (char*)malloc(nullBytesLen);
         memcpy(nullIndicator,Ptuple,nullBytesLen);
         bool isNull;// check attr is null

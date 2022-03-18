@@ -40,7 +40,7 @@ namespace PeterDB {
         short recordSize = 0;
 
         int fields = recordDescriptor.size();  // get fields
-        int nullBytes = ceil(fields / 8)+1;   // null bytes
+        int nullBytes = ceil((double )fields / 8);   // null bytes
         char * nullP=( char *) malloc(nullBytes);
         memcpy(nullP,data,nullBytes);
         bool isNull;
@@ -381,7 +381,7 @@ namespace PeterDB {
 
             int fields=recordDescriptor.size();  // get fields
 
-            int nullBytes= ceil((fields /8))+1;   // null bytes
+            int nullBytes = ceil((double )fields / 8);   // null bytes
 
             char * nullP=( char *) malloc(nullBytes);
             memcpy(nullP,data,nullBytes);
@@ -455,7 +455,7 @@ namespace PeterDB {
             short recordSize = 0;
 
             int fields = recordDescriptor.size();  // get fields
-            int nullBytes = ceil(fields / 8)+1;   // null bytes
+            int nullBytes = ceil((double )fields / 8);   // null bytes
             char * nullP=( char *) malloc(nullBytes);
             memcpy(nullP,data,nullBytes);
             bool isNull;
@@ -905,7 +905,7 @@ namespace PeterDB {
                             bool isRetrieved= true;
                             //genereate null indicator first
                             int fields=retrieveAttrIndex.size();
-                            int nullBytesLen = ceil(fields / 8)+1;
+                            int nullBytesLen = ceil((double )fields / 8);   // null bytes
                             auto * nullIndicator = (unsigned char*)malloc(nullBytesLen);
                             memset(nullIndicator,0, nullBytesLen);
                             int recordSize=nullBytesLen;

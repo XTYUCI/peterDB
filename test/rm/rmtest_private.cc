@@ -27,7 +27,6 @@ namespace PeterDBTesting {
         nullsIndicators.clear();
         for (int i = 0; i < numTuples; i++) {
             memset(inBuffer, 0, bufSize);
-            std::cout<<i<<endl;
             // Insert Tuple
             nullsIndicator[0] = dist256(generator);
             Tweet tweet;
