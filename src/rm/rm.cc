@@ -100,13 +100,17 @@ namespace PeterDB {
             RC rc= destroyIndex(tableName,attr);
             if(rc!=0){return -1;}
         }
-
+        FileHandle fileHandle1;
+        RC rc = rbfm->openFile("Tables", fileHandle1);
+        if (rc != 0) {return rc;}
         RID rid;
         //delete record in Tables
         int deleteID= getTableId(tableName,rid); // get delete id
         if(deleteID==-1){return -1;} // tablename not in tables
-        RC rc= deleteTuple("Tables",rid);
+        rc=rbfm->deleteRecord(fileHandle1,tablesRecordDescriptor,rid);
         if(rc!=0){return -1;}
+        rc= rbfm->closeFile(fileHandle1);
+        if (rc != 0) {return rc;}
 
         // delete record in Columns
         RM_ScanIterator rm_ScanIterator;
@@ -121,7 +125,7 @@ namespace PeterDB {
         scan("Columns",condAttr,compOp,&deleteID,attributeNames,rm_ScanIterator);
         while(rm_ScanIterator.getNextTuple(deletedColumnRid,data)!=RM_EOF)
         {
-            rc = deleteTuple("Columns",deletedColumnRid);
+            rc= rbfm->deleteRecord(rm_ScanIterator.rbfm_scanIterator.fileHandle,columnsRecordDescriptor,deletedColumnRid);
             if(rc!=0){return -1;}
         }
         rm_ScanIterator.close();
@@ -320,6 +324,8 @@ namespace PeterDB {
     }
 
     RC RelationManager::insertTuple(const std::string &tableName, const void *data, RID &rid) {
+        if(tableName=="Tables"||tableName=="Columns"){return -1;}
+
         FileHandle fileHandle;
         RC rc= rbfm->openFile(tableName,fileHandle);
         if(rc!=0){return -1;}
@@ -343,6 +349,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::deleteTuple(const std::string &tableName, const RID &rid) {
+        if(tableName=="Tables"||tableName=="Columns"){return -1;}
         FileHandle fileHandle;
         RC rc= rbfm->openFile(tableName,fileHandle);
         if(rc!=0){return -1;}
@@ -368,6 +375,7 @@ namespace PeterDB {
     }
 
     RC RelationManager::updateTuple(const std::string &tableName, const void *data, const RID &rid) {
+        if(tableName=="Tables"||tableName=="Columns"){return -1;}
         FileHandle fileHandle;
         RC rc= rbfm->openFile(tableName,fileHandle);
         if(rc!=0){return -1;}
@@ -634,11 +642,16 @@ namespace PeterDB {
         varcharLength=fileName.length();
         memcpy(PofData+dataSize,&varcharLength,4);
         memcpy(PofData+dataSize+4,fileName.c_str(),varcharLength);
+        FileHandle fileHandle;
+        RC rc = rbfm->openFile("Tables", fileHandle);
+        if (rc != 0) {return rc;}
         // insert the record into the Tables table
         RID rid;
-        RC rc= insertTuple("Tables",data,rid);
+        rc= rbfm->insertRecord(fileHandle,tablesRecordDescriptor,data,rid);
         if(rc!=0){return -1;}
         free(data);
+        rc= rbfm->closeFile(fileHandle);
+        if (rc != 0) {return rc;}
         return 0;
     }
 
@@ -648,7 +661,9 @@ namespace PeterDB {
         char * PofData=(char *) data;
         int position=1;
         char nullindicator=0;
-
+        FileHandle fileHandle;
+        RC rc = rbfm->openFile("Columns", fileHandle);
+        if (rc != 0) {return rc;}
         for (int i = 0; i < recordDescriptor.size(); i++)   // loop all the attribute and insert the record to Cloumns table
         {
             Attribute attr = recordDescriptor[i];
@@ -667,11 +682,14 @@ namespace PeterDB {
             memcpy(PofData+recordSize+8,&position,4);
             recordSize+=12;
             position+=1;
+
             RID rid;
-            RC rc =insertTuple("Columns",data,rid);
+            rc= rbfm->insertRecord(fileHandle,columnsRecordDescriptor,data,rid);
             if(rc!=0){return -1;}
         }
         free(data);
+        rc= rbfm->closeFile(fileHandle);
+        if (rc != 0) {return rc;}
         return 0;
     }
 
