@@ -447,7 +447,6 @@ namespace PeterDBTesting {
 
                 } else if (attributeName == "user_id") {
 
-
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1), &tweet.user_id, sizeof(unsigned)), 0)
                                         << "returned user_id field is not correct.";
 
@@ -473,7 +472,6 @@ namespace PeterDBTesting {
                               0) << "returned embedded_url field is not correct.";
 
                 } else if (attributeName == "lat") {
-
 
                     EXPECT_EQ(memcmp(((char *) outBuffer + 1), &tweet.lat, sizeof(float)), 0)
                                         << "returned lat field is not correct.";

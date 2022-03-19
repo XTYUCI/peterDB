@@ -142,7 +142,9 @@ namespace PeterDBTesting {
         // 1. Filter -- IndexScan as input, on TypeReal attribute
         // SELECT * FROM RIGHT WHERE C >= 185.9 AND C < 193.4;
 
-        unsigned numOfTuples = 100000;
+
+        unsigned numOfTuples = 20000;
+
         inBuffer = malloc(bufSize);
         outBuffer = malloc(bufSize);
 
@@ -688,7 +690,8 @@ namespace PeterDBTesting {
         outBuffer = malloc(bufSize);
 
         std::string tableName = "group";
-        createAndPopulateTable(tableName, {"A", "B"}, 30000);
+
+        createAndPopulateTable(tableName, {"A", "B"}, 2000);
 
         // Create TableScan
         PeterDB::IndexScan is(rm, tableName, "A");
@@ -711,7 +714,9 @@ namespace PeterDBTesting {
 
         std::vector<std::string> expected;
         for (int i = 1; i < 6; i++) {
-            expected.emplace_back("group.B: " + std::to_string(i) + ", COUNT(group.A): " + std::to_string(6000));
+
+            expected.emplace_back("group.B: " + std::to_string(i) + ", COUNT(group.A): " + std::to_string(400));
+
         }
         sort(expected.begin(), expected.end());
         sort(printed.begin(), printed.end());
