@@ -200,16 +200,7 @@
             "timeout": 3,
             "points": 5
         },
-        {
-            "name": "QE_Private_Test.large_bnljoin_with_filter",
-            "setup": "",
-            "run": "cd cmake-build-debug && CTEST_OUTPUT_ON_FAILURE=1 ctest . -R ^QE_Private_Test.large_bnljoin_with_filter$",
-            "input": "",
-            "output": "",
-            "comparison": "included",
-            "timeout": 3,
-            "points": 5
-        },
+        
         {
             "name": "QE_Private_Test.deep_bnljoin",
             "setup": "",
