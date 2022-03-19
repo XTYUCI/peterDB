@@ -16,7 +16,10 @@ namespace PeterDB {
         {
             void * filterValue= malloc(PAGE_SIZE);
             RC rc= getFilterValue(filterAttrs,condition.lhsAttr,filterValue,data);
-            if(rc==-3 ){continue;}
+            if(rc==-3 )
+            {
+                free(filterValue);
+                continue;}
             if(rc!=0){
                 free(filterValue);
                 return -1;}
@@ -76,6 +79,7 @@ namespace PeterDB {
                 }
                 else
                 {
+                    free(nullIndicator);
                     return -3;
                 }
             }else // just increase curOffset
@@ -305,7 +309,10 @@ namespace PeterDB {
                 }
                 count+=1;
             }
-            if(count==fields){return -1;}// no attr is matched
+            if(count==fields){
+                free(projectNullIndicator);
+                free(nullIndicator);
+                return -1;}// no attr is matched
         }
         memcpy(Pdata,projectNullIndicator,projectNullBytesLen);
         free(projectNullIndicator);
@@ -368,6 +375,7 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
+                                    free(filterValue);
                                     return 0;
                                 }else
                                 {
@@ -375,9 +383,11 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
+                                    free(filterValue);
                                     return 0;
                                 }
                             } else {// not fount key
+                                free(filterValue);
                                 return QE_EOF;
                             }
                         } else if (filterType == TypeReal) {
@@ -391,6 +401,7 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
+                                    free(filterValue);
                                     return 0;
                                 }else
                                 {
@@ -398,9 +409,11 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
+                                    free(filterValue);
                                     return 0;
                                 }
                             } else {//not found key
+                                free(filterValue);
                                 return QE_EOF;
                             }
                         } else if (filterType == TypeVarChar) {
@@ -416,6 +429,7 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
+                                    free(filterValue);
                                     return 0;
                                 }else
                                 {
@@ -423,9 +437,11 @@ namespace PeterDB {
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                     tupleOffsetArrayIndex=0;
                                     scanNextRightTuple= true;
+                                    free(filterValue);
                                     return 0;
                                 }
                             } else {//not found key
+                                free(filterValue);
                                 return QE_EOF;
                             }
                         }
@@ -459,6 +475,7 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
+                                free(filterValue);
                                 return 0;
                             }else
                             {
@@ -466,9 +483,11 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
+                                free(filterValue);
                                 return 0;
                             }
                         } else {// not fount key
+                            free(filterValue);
                             return QE_EOF;
                         }
                     } else if (filterType == TypeReal) {
@@ -482,6 +501,7 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
+                                free(filterValue);
                                 return 0;
                             }else
                             {
@@ -489,9 +509,11 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
+                                free(filterValue);
                                 return 0;
                             }
                         } else {//not found key
+                            free(filterValue);
                             return QE_EOF;
                         }
                     } else if (filterType == TypeVarChar) {
@@ -507,6 +529,7 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
+                                free(filterValue);
                                 return 0;
                             }else
                             {
@@ -514,9 +537,11 @@ namespace PeterDB {
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
                                 tupleOffsetArrayIndex=0;
                                 scanNextRightTuple= true;
+                                free(filterValue);
                                 return 0;
                             }
                         } else {//not found key
+                            free(filterValue);
                             return QE_EOF;
                         }
                     }
@@ -1130,6 +1155,7 @@ namespace PeterDB {
         }
         memcpy((char *)data+nullBytesLen,&result,4);
         hasReturnAgg= true;
+        free(nullIndicator);
         return 0;
     }
 
