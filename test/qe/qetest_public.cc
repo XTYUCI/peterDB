@@ -184,7 +184,6 @@ namespace PeterDBTesting {
                                         << "RelationManager.printTuple() should succeed.";
             printed.emplace_back(stream.str());
             memset(outBuffer, 0, bufSize);
-
         }
 
         std::vector<std::string> expected;
