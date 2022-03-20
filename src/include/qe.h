@@ -236,7 +236,9 @@ namespace PeterDB {
         unordered_map<int,vector<int> > intHashTable;
         unordered_map<float,vector<int> > realHashTable;
         unordered_map<string,vector<int> > varcharHashTable;
-        int tupleOffsetArrayIndex;
+        unordered_map<int, int > indexIntMap;
+        unordered_map<float, int > indexRealMap;
+        unordered_map<string , int > indexVarMap;
         bool scanNextRightTuple;
         bool rightTableScanEnd;
         bool leftTableScanEnd;

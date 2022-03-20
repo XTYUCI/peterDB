@@ -331,7 +331,6 @@ namespace PeterDB {
         this->blockBuffer= malloc(numPages*PAGE_SIZE);
         this->rightTupleBuffer= malloc(PAGE_SIZE);
         this->rightTableScanEnd= true;
-        this->tupleOffsetArrayIndex=0;
         this->leftTableScanEnd= false;
         this->scanNextRightTuple= true;
         this->blockLoaded= false;
@@ -368,20 +367,20 @@ namespace PeterDB {
                             memcpy(&rightIntKey, (char *) filterValue, 4);
                             auto it = intHashTable.find(rightIntKey);
                             if (it != intHashTable.end()) {
-
-                                if(tupleOffsetArrayIndex!=it->second.size()-1)
+                                int curIntIndex=indexIntMap[rightIntKey];
+                                if(curIntIndex!=it->second.size()-1)
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curIntIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                    curIntIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     free(filterValue);
                                     return 0;
                                 }else
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curIntIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex=0;
+                                    curIntIndex=0;
                                     scanNextRightTuple= true;
                                     free(filterValue);
                                     return 0;
@@ -395,19 +394,20 @@ namespace PeterDB {
                             memcpy(&rightRealKey, (char *) filterValue, 4);
                             auto it = realHashTable.find(rightRealKey);
                             if (it != realHashTable.end()) {
-                                if(tupleOffsetArrayIndex!=it->second.size()-1)
+                                int curRealIndex=indexRealMap[rightRealKey];
+                                if(curRealIndex!=it->second.size()-1)
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curRealIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                    curRealIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     free(filterValue);
                                     return 0;
                                 }else
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curRealIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex=0;
+                                    curRealIndex=0;
                                     scanNextRightTuple= true;
                                     free(filterValue);
                                     return 0;
@@ -423,19 +423,20 @@ namespace PeterDB {
                             varcharKey = string((char *) filterValue + 4, varlength);
                             auto it = varcharHashTable.find(varcharKey);
                             if (it != varcharHashTable.end()) {
-                                if(tupleOffsetArrayIndex!=it->second.size()-1)
+                                int curVarIndex=indexVarMap[varcharKey];
+                                if(curVarIndex!=it->second.size()-1)
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curVarIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                    curVarIndex+=1;   // wait for other merge in vector
                                     scanNextRightTuple= false;  // do not scan next tuple
                                     free(filterValue);
                                     return 0;
                                 }else
                                 {
-                                    int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                    int leftTupleOffset=it->second[curVarIndex];
                                     mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                    tupleOffsetArrayIndex=0;
+                                    curVarIndex=0;
                                     scanNextRightTuple= true;
                                     free(filterValue);
                                     return 0;
@@ -468,20 +469,20 @@ namespace PeterDB {
                         memcpy(&rightIntKey, (char *) filterValue, 4);
                         auto it = intHashTable.find(rightIntKey);
                         if (it != intHashTable.end()) {
-
-                            if(tupleOffsetArrayIndex!=it->second.size()-1)
+                            int curIntIndex=indexIntMap[rightIntKey];
+                            if(curIntIndex!=it->second.size()-1)
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curIntIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                curIntIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 free(filterValue);
                                 return 0;
                             }else
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curIntIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex=0;
+                                curIntIndex=0;
                                 scanNextRightTuple= true;
                                 free(filterValue);
                                 return 0;
@@ -495,19 +496,20 @@ namespace PeterDB {
                         memcpy(&rightRealKey, (char *) filterValue, 4);
                         auto it = realHashTable.find(rightRealKey);
                         if (it != realHashTable.end()) {
-                            if(tupleOffsetArrayIndex!=it->second.size()-1)
+                            int curRealIndex=indexRealMap[rightRealKey];
+                            if(curRealIndex!=it->second.size()-1)
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curRealIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                curRealIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 free(filterValue);
                                 return 0;
                             }else
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curRealIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex=0;
+                                curRealIndex=0;
                                 scanNextRightTuple= true;
                                 free(filterValue);
                                 return 0;
@@ -523,19 +525,20 @@ namespace PeterDB {
                         varcharKey = string((char *) filterValue + 4, varlength);
                         auto it = varcharHashTable.find(varcharKey);
                         if (it != varcharHashTable.end()) {
-                            if(tupleOffsetArrayIndex!=it->second.size()-1)
+                            int curVarIndex=indexVarMap[varcharKey];
+                            if(curVarIndex!=it->second.size()-1)
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curVarIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex+=1;   // wait for other merge in vector
+                                curVarIndex+=1;   // wait for other merge in vector
                                 scanNextRightTuple= false;  // do not scan next tuple
                                 free(filterValue);
                                 return 0;
                             }else
                             {
-                                int leftTupleOffset=it->second[tupleOffsetArrayIndex];
+                                int leftTupleOffset=it->second[curVarIndex];
                                 mergeDatas((char *)blockBuffer+leftTupleOffset,PrightTuple,data,leftAttrs,rightAttrs);
-                                tupleOffsetArrayIndex=0;
+                                curVarIndex=0;
                                 scanNextRightTuple= true;
                                 free(filterValue);
                                 return 0;
@@ -604,6 +607,7 @@ namespace PeterDB {
                     vector<int> tupleOffset;
                     tupleOffset.push_back(curBlockSize);
                     intHashTable.emplace(intKey,tupleOffset);
+                    indexIntMap.emplace(intKey,0);
                 }
             }else if (filterType==TypeReal)
             {
@@ -619,6 +623,7 @@ namespace PeterDB {
                     vector<int> tupleOffset;
                     tupleOffset.push_back(curBlockSize);
                     realHashTable.emplace(realKey,tupleOffset);
+                    indexRealMap.emplace(realKey,0);
                 }
             }else if (filterType==TypeVarChar)
             {
@@ -636,6 +641,7 @@ namespace PeterDB {
                     vector<int> tupleOffset;
                     tupleOffset.push_back(curBlockSize);
                     varcharHashTable.emplace(varcharKey,tupleOffset);
+                    indexVarMap.emplace(varcharKey,0);
                 }
             }
             curBlockSize+=tupleLength;
