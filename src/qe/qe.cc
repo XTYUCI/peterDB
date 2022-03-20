@@ -388,7 +388,7 @@ namespace PeterDB {
                             } else {// not fount key
                                 free(filterValue);
                                 scanNextRightTuple= true;
-                                return 0;
+
                             }
                         } else if (filterType == TypeReal) {
                             float rightRealKey;
@@ -415,7 +415,7 @@ namespace PeterDB {
                             } else {//not found key
                                 free(filterValue);
                                 scanNextRightTuple= true;
-                                return 0;
+
                             }
                         } else if (filterType == TypeVarChar) {
                             string varcharKey;
@@ -445,7 +445,7 @@ namespace PeterDB {
                             } else {//not found key
                                 free(filterValue);
                                 scanNextRightTuple= true;
-                                return 0;
+
                             }
                         }
                     } else {
@@ -492,7 +492,7 @@ namespace PeterDB {
                         } else {// not fount key
                             free(filterValue);
                             scanNextRightTuple= true;
-                            return 0;
+
                         }
                     } else if (filterType == TypeReal) {
                         float rightRealKey;
@@ -520,7 +520,7 @@ namespace PeterDB {
                         } else {//not found key
                             free(filterValue);
                             scanNextRightTuple= true;
-                            return 0;
+
                         }
                     } else if (filterType == TypeVarChar) {
                         string varcharKey;
@@ -550,7 +550,7 @@ namespace PeterDB {
                         } else {//not found key
                             free(filterValue);
                             scanNextRightTuple= true;
-                            return 0;
+                            
                         }
                     }
                 }
