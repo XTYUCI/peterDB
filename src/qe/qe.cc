@@ -575,6 +575,12 @@ namespace PeterDB {
     RC BNLJoin::getNextBlock()
     {
         char * Pblock=(char *)blockBuffer;
+        indexIntMap.clear();
+        indexVarMap.clear();
+        indexRealMap.clear();
+        intHashTable.clear();
+        realHashTable.clear();
+        varcharHashTable.clear();
         while(this->leftInput->getNextTuple(Pblock+curBlockSize)!=RM_EOF )
         {
             AttrType filterType;
