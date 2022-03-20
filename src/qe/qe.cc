@@ -458,7 +458,7 @@ namespace PeterDB {
                     AttrType filterType;
                     int tupleLength = 0;
                     void *filterValue = malloc(PAGE_SIZE);
-                    getAttrOffsetAndTupleLength(leftAttrs, condition.rhsAttr, filterValue, PrightTuple, tupleLength,
+                    getAttrOffsetAndTupleLength(rightAttrs, condition.rhsAttr, filterValue, PrightTuple, tupleLength,
                                                 filterType);
 
                     // get corresponding left tuple offset from map
