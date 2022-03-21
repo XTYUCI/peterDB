@@ -661,9 +661,12 @@ namespace PeterDB {
         if(curBlockSize>0)// not full
         {blockLoaded= true;
             rightTableScanEnd= false;}
-        else{blockLoaded= false;}
-        if(!firstLoad) {
-            leftTableScanEnd = true;
+        else
+        {
+            blockLoaded= false;
+            if(!firstLoad) {
+                leftTableScanEnd = true;
+            }
         }
         return 0;
     }
