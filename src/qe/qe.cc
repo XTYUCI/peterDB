@@ -747,7 +747,7 @@ namespace PeterDB {
         char * Pright=(char *)rightValue;
         char * Pdata=(char *)data;
         //left null
-        int leftFields=rightAttrs.size();
+        int leftFields=leftAttrs.size();
         int leftNullBytesLen = ceil((double )leftFields / 8);   // null bytes;
         char * leftNullIndicator = (char*)malloc(leftNullBytesLen);
         memcpy(leftNullIndicator,Pleft,leftNullBytesLen);
