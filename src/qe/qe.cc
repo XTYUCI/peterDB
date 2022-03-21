@@ -550,7 +550,7 @@ namespace PeterDB {
                         } else {//not found key
                             free(filterValue);
                             scanNextRightTuple= true;
-                            
+
                         }
                     }
                 }
@@ -594,14 +594,6 @@ namespace PeterDB {
             void * filterValue= malloc(PAGE_SIZE);
             getAttrOffsetAndTupleLength(leftAttrs,condition.lhsAttr,filterValue,Pblock+curBlockSize,tupleLength,filterType);
 
-            // if block is overflow
-            if( (curBlockSize+tupleLength) > (numPages*PAGE_SIZE) )
-            {
-                free(filterValue);
-                blockLoaded= true;
-                rightTableScanEnd= false;
-                return 0;
-            }
 
             // update map
             if(filterType==TypeInt)
@@ -656,6 +648,14 @@ namespace PeterDB {
                 }
             }
             curBlockSize+=tupleLength;
+            // if block is overflow
+            if( (curBlockSize+tupleLength) > (numPages*PAGE_SIZE) )
+            {
+                free(filterValue);
+                blockLoaded= true;
+                rightTableScanEnd= false;
+                return 0;
+            }
             free(filterValue);
         }
         if(curBlockSize>0)// not full
